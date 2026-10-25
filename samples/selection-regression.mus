@@ -1,0 +1,6 @@
+#title Selection regression
+@0={31,0,0,8,0,48,0,1,0,0,0,31,0,0,8,0,48,0,1,0,0,0,31,0,0,8,0,48,0,1,0,0,0,31,0,0,8,0,48,0,1,0,0,0,7,0,15}
+; A has the only tempo. Select B notes to check tempo inheritance.
+A @0 t180 o4 c4_d4 t90 e4 [f+8. g-16 / a8]3 b4
+B @0 o4 r2 [c+8. d-16]3 e4 f4
+C @0 o5 r4 [[c8 d8]2 e4]2 f4

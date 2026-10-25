@@ -1,0 +1,28 @@
+name: Build and test
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  cpp:
+    strategy:
+      matrix:
+        os: [windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Configure Windows
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build-tests -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
+      - name: Configure Linux
+        if: runner.os == 'Linux'
+        run: cmake -S . -B build-tests -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build-tests --config Release --parallel 2
+      - name: Stage Windows sound DLL
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Copy-Item bin/independent_opm.dll build-tests/Release/
+      - name: Test
+        run: ctest --test-dir build-tests -C Release --output-on-failure

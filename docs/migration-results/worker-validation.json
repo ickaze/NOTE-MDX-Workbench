@@ -1,0 +1,38 @@
+{
+  "version": "2.10.0-alpha.4",
+  "date": "2026-10-25",
+  "scope": "portable LatestWorker queue; not Windows compiler/CP932/UI execution",
+  "ctest": "passed; part of 9-test suite, owned-input addition rerun separately",
+  "coalesced_submissions": 1000,
+  "processed_request_ids": [
+    1,
+    1000
+  ],
+  "owned_input_bytes": 1048576,
+  "shutdown_cycles": 100,
+  "coverage": [
+    "stale result rejection",
+    "owned mutable input isolation",
+    "embedded NUL and sentinel",
+    "undersized buffer is not modified or consumed",
+    "processor exception followed by recovery",
+    "drop pending on stop",
+    "join running processor",
+    "wake blocked result receiver"
+  ],
+  "asan_ubsan": {
+    "exit_code": 0,
+    "leak_sanitizer": false
+  },
+  "thread_sanitizer": {
+    "exit_code": 0
+  },
+  "source_sha256": {
+    "native/frontend/latest_worker.h": "d5140e49a8fe13178bf8ef7e21ca184aee1c5fed9de3c187adf04557f677d1ea",
+    "native/tests/latest_worker_tests.cpp": "67d8078c1b381dcd484585ade2843ebbe0020929b47d3b88025495bf6797e97a"
+  },
+  "windows_smoke": {
+    "expected_checks": 465,
+    "executed": false
+  }
+}

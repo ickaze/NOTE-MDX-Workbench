@@ -1,0 +1,56 @@
+// Test-only driver. The script copies fixed v2.9.11 helpers and alpha.6 positions beside
+// this file in a temporary directory; production must not depend on this oracle.
+package main
+
+import (
+ "bufio"
+ "encoding/hex"
+ "fmt"
+ "os"
+ "sort"
+ "strconv"
+ "strings"
+ "time"
+ "unicode/utf16"
+)
+
+func num(s string) uint64 { n,e:=strconv.ParseUint(s,10,64);if e!=nil {panic(e)};return n }
+func si(s string) int { n,e:=strconv.Atoi(s);if e!=nil {panic(e)};return n }
+func bit(b bool) string {if b{return "1"};return "0"}
+func both(s string,b bool) string {return bit(b)+":"+s}
+func parseSteps(s string) (a [16]uint64) {for i,v:=range strings.Split(s,","){a[i]=num(v)};return}
+func parseEvents(s string) (a []sourceEvent) {if s==""{return};for _,v:=range strings.Split(s,";"){f:=strings.Split(v,",");a=append(a,sourceEvent{Track:si(f[0]),Line:si(f[1]),Steps:num(f[2])})};return}
+func positionByteWidth(s string) int { n:=0;for _,r:=range s {if r<128 {n++} else {n+=2}};return n }
+func evaluate(c string,a []string) string {
+ switch c {
+ case "characterbatch":var b strings.Builder;for _,v:=range strings.Split(a[1],";"){f:=strings.Split(v,",");fmt.Fprintf(&b,"%d;",eventCharacter(a[0],si(f[0]),si(f[1])))};return b.String()
+ case "location":l,c:=sourceLocation(a[0],uint32(num(a[1])));return fmt.Sprintf("%d,%d",l,c)
+ case "character":return fmt.Sprint(eventCharacter(a[0],si(a[1]),si(a[2])))
+ case "normalize":return normalizeSourceText(a[0])
+ case "steps":return formatLineSteps(parseSteps(a[0]))
+ case "notes":return formatLineNoteLengths(parseSteps(a[0]))
+ case "compact":return compactNoteLength(num(a[0]))
+ case "remainder":return noteRemainder(num(a[0]))
+ case "token":return fmt.Sprint(mmlTokenEnd(utf16.Encode([]rune(a[0])),si(a[1])))
+ case "key":l,r,b:=pianoKeyBounds(si(a[0]),si(a[1]));return fmt.Sprintf("%d,%d,%s",l,r,bit(b))
+ case "slider":return fmt.Sprint(sliderClickValue(si(a[0]),si(a[1]),si(a[2]),si(a[3]),si(a[4])))
+ case "first":return fmt.Sprint(firstEnabledTrack(uint32(num(a[0]))))
+ case "follow":return fmt.Sprint(editorFollowTrack(si(a[0]),uint32(num(a[1]))))
+ case "restored":var p *int;if a[0]!="nil"{v:=si(a[0]);p=&v};return fmt.Sprint(restoredEditorFollow(p,si(a[1])!=0))
+ case "click":return bit(isPDXEditorClick(si(a[0]),uint16(num(a[1])),uintptr(num(a[2])),uintptr(num(a[3]))))
+ case "pcm":return both(pcmFileName(a[0]))
+ case "reference":return both(pdxReferenceName(a[0]))
+ case "project":return pdxProjectName(a[0],a[1])
+ case "ensurepcm":return both(ensurePCMFileDirective(a[0],a[1]))
+ case "overwrite":return ensureOverwriteDirective(a[0])
+ case "append":s,e:=appendVoiceDefinition(a[0],a[1],si(a[2]));if e!=nil{return "ERROR:"+e.Error()};return s
+ case "scope":return voiceWithOffsetScope(a[0],si(a[1]))
+ case "tag":s,e:=tagVgm([]byte(a[0]),a[1]);if e!=nil{return "ERROR:"+e.Error()};return string(s)
+ case "gutter":return buildGutterText(a[0],accumulateLineSteps(parseEvents(a[1])))
+ case "accumulate":rows:=accumulateLineSteps(parseEvents(a[0]));keys:=[]int{};for key:=range rows{keys=append(keys,key)};sort.Ints(keys);var b strings.Builder;for _,key:=range keys{fmt.Fprintf(&b,"%d:",key);for _,v:=range rows[key]{fmt.Fprintf(&b,"%d,",v)};b.WriteString(";")};return b.String()
+ case "spans":ds:=[]editorDiagnostic{};if a[1]!="" {for _,v:=range strings.Split(a[1],";"){f:=strings.Split(v,",");ds=append(ds,editorDiagnostic{Error:f[0]=="1",EditorLine:si(f[1]),EditorColumn:si(f[2])})}};spans:=buildErrorSpans(a[0],ds,func(s string) int {for _,r:=range s {if r>127{return 2}};return 1});var b strings.Builder;for _,s:=range spans{fmt.Fprintf(&b,"%d,%d;",s.Begin,s.End)};return b.String()
+ case "gate":var gate editorCheckGate;tickets:=[]editorCheckTicket{};var b strings.Builder;stamp:=func(s string)time.Time{return time.Unix(1,0).Add(time.Duration(si(s))*time.Millisecond)};for _,action:=range strings.Split(a[0],";"){f:=strings.Split(action,",");switch f[0]{case "change":gate.Change(stamp(f[1]));b.WriteString("C;");case "cancel":gate.Cancel();b.WriteString("X;");case "take":ticket,ok:=gate.Take(stamp(f[1]),num(f[2]));if ok {tickets=append(tickets,ticket);fmt.Fprintf(&b,"T:%d,%d;",ticket.Generation,ticket.Revision)}else{b.WriteString("N;")};case "accept":b.WriteString("A:"+bit(gate.Accept(tickets[si(f[1])],num(f[2])))+";")}};return b.String()
+ }
+ panic("Unknown command: "+c)
+}
+func main(){scanner:=bufio.NewScanner(os.Stdin);scanner.Buffer(make([]byte,65536),16*1024*1024);out:=bufio.NewWriter(os.Stdout);defer out.Flush();for scanner.Scan(){f:=strings.Split(scanner.Text(),"\t");a:=[]string{};for _,s:=range f[1:]{p,e:=hex.DecodeString(s);if e!=nil{panic(e)};a=append(a,string(p))};fmt.Fprintln(out,hex.EncodeToString([]byte(evaluate(f[0],a))))};if e:=scanner.Err();e!=nil{panic(e)}}

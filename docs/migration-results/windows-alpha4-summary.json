@@ -1,0 +1,16 @@
+{
+  "version": "2.10.0-alpha.4",
+  "ok": false,
+  "checks": 375,
+  "expected_checks": 465,
+  "failure_count": 1,
+  "failure": "First output fixture (copy, empty file): std::filesystem::file_size could not locate the Unicode extended-length source path. Local folder omitted.",
+  "interpretation": {
+    "basis": "Inferred from alpha.4 test control flow and 375 = 286 + 1 + 88; the received JSON had no per-section fields.",
+    "common_checks_without_reported_failure": 286,
+    "analysis_checks_without_reported_failure": 88,
+    "output_checks_executed": 1,
+    "output_checks_skipped": 90
+  },
+  "raw_local_path_included": false
+}

@@ -1,0 +1,15 @@
+package main
+
+func sliderClickValue(x, left, width, minimum, maximum int) int {
+	if width <= 0 || maximum <= minimum {
+		return minimum
+	}
+	relative := x - left
+	if relative < 0 {
+		relative = 0
+	}
+	if relative > width {
+		relative = width
+	}
+	return minimum + (relative*(maximum-minimum)+width/2)/width
+}

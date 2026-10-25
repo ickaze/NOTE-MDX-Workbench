@@ -1,0 +1,40 @@
+package main
+
+// Masked tracks are omitted; a rest or missing mapping does not change priority.
+func firstEnabledTrack(mask uint32) int {
+	for track := 0; track < 16; track++ {
+		if mask&(1<<track) == 0 {
+			return track
+		}
+	}
+	return -1
+}
+
+const (
+	editorFollowOff  = 0
+	editorFollowAuto = 1
+)
+
+var editorFollowChoices = []string{"OFF", "AUTO", "A", "B", "C", "D", "E", "F", "G", "H", "P", "Q", "R", "S", "T", "U", "V", "W"}
+
+func editorFollowTrack(mode int, mask uint32) int {
+	if mode == editorFollowAuto {
+		return firstEnabledTrack(mask)
+	}
+	if mode >= 2 && mode < len(editorFollowChoices) {
+		return mode - 2
+	}
+	return -1
+}
+func restoredEditorFollow(mode *int, previous bool) int {
+	if mode != nil {
+		if *mode >= 0 && *mode < len(editorFollowChoices) {
+			return *mode
+		}
+		return editorFollowOff
+	}
+	if previous {
+		return editorFollowAuto
+	}
+	return editorFollowOff
+}

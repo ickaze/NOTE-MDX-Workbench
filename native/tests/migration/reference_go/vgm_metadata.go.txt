@@ -1,0 +1,64 @@
+package main
+
+import (
+	"bytes"
+	"compress/gzip"
+	"encoding/binary"
+	"fmt"
+	"unicode/utf16"
+)
+
+// GD3 v1.00: eleven UTF-16LE, zero-terminated fields.
+func tagVgm(data []byte, title string) ([]byte, error) {
+	if len(data) < 0x40 || string(data[:4]) != "Vgm " {
+		return nil, fmt.Errorf("Invalid VGM header")
+	}
+	out := append([]byte(nil), data...)
+	var payload bytes.Buffer
+	fields := []string{title, title, "", "", "", "", "", "", "", "NOTE MDX Workbench", "Exported from NOTE MDX Workbench."}
+	for _, field := range fields {
+		for _, unit := range append(utf16.Encode([]rune(field)), 0) {
+			_ = binary.Write(&payload, binary.LittleEndian, unit)
+		}
+	}
+	offset := len(out)
+	out = append(out, []byte("Gd3 ")...)
+	out = binary.LittleEndian.AppendUint32(out, 0x100)
+	out = binary.LittleEndian.AppendUint32(out, uint32(payload.Len()))
+	out = append(out, payload.Bytes()...)
+	binary.LittleEndian.PutUint32(out[0x14:], uint32(offset-0x14))
+	binary.LittleEndian.PutUint32(out[4:], uint32(len(out)-4))
+	return out, nil
+}
+
+func gzipVgm(data []byte) ([]byte, error) { return gzipVgmControlled(data, nil) }
+func gzipVgmControlled(data []byte, checkpoint func() bool) ([]byte, error) {
+	return gzipVgmWithProgress(data, checkpoint, nil)
+}
+func gzipVgmWithProgress(data []byte, checkpoint func() bool, progress func(int)) ([]byte, error) {
+	var out bytes.Buffer
+	writer, err := gzip.NewWriterLevel(&out, gzip.DefaultCompression)
+	if err != nil {
+		return nil, err
+	}
+	for start := 0; start < len(data); start += 65536 {
+		if checkpoint != nil && !checkpoint() {
+			writer.Close()
+			return nil, fmt.Errorf("Export cancelled")
+		}
+		if progress != nil {
+			progress(950 + start*49/len(data))
+		}
+		end := start + 65536
+		if end > len(data) {
+			end = len(data)
+		}
+		if _, err = writer.Write(data[start:end]); err != nil {
+			return nil, err
+		}
+	}
+	if err = writer.Close(); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
+}

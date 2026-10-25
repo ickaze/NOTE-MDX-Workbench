@@ -1,0 +1,12 @@
+package main
+
+const (
+	idLiveOutput = 4100
+	idLiveVoices = 4102
+	idLiveMIDI   = 4103
+	idPDXEdit    = 4104
+)
+
+func isPDXEditorClick(id int, code uint16, source, button uintptr) bool {
+	return id == idPDXEdit && code == 0 && button != 0 && source == button
+}

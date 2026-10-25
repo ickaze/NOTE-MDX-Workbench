@@ -1,0 +1,38 @@
+package main
+
+// The palette is identical to IndependentMDX's trackColors palette.
+var partColors = [16][3]byte{
+	{255, 95, 95}, {255, 174, 72}, {242, 225, 70}, {116, 226, 99},
+	{72, 214, 198}, {94, 167, 255}, {178, 137, 255}, {245, 122, 204},
+	{205, 72, 72}, {196, 130, 40}, {174, 180, 45}, {54, 163, 99},
+	{47, 155, 177}, {86, 104, 210}, {137, 82, 205}, {205, 76, 143},
+}
+
+func mmlTokenEnd(text []uint16, begin int) int {
+	if begin < 0 || begin >= len(text) {
+		return begin
+	}
+	end := begin + 1
+	if text[begin] == '$' || text[begin] == '#' {
+		for end < len(text) && ((text[end] >= 'A' && text[end] <= 'Z') || (text[end] >= 'a' && text[end] <= 'z') || (text[end] >= '0' && text[end] <= '9') || text[end] == '-') {
+			end++
+		}
+		return end
+	}
+	for end < len(text) {
+		cursor := end
+		for cursor < len(text) && (text[cursor] == ' ' || text[cursor] == '\t') {
+			cursor++
+		}
+		if cursor == len(text) {
+			break
+		}
+		char := text[cursor]
+		if (char >= '0' && char <= '9') || char == '+' || char == '-' || char == '=' || char == '"' || char == '.' || char == '%' || char == '^' || char == '~' || char == '&' || (text[begin] == 'n' && char == ',') {
+			end = cursor + 1
+		} else {
+			break
+		}
+	}
+	return end
+}

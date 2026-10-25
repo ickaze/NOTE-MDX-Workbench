@@ -1,0 +1,17 @@
+{
+  "reference_version": "2.9.11",
+  "seed": 291103,
+  "go_comparisons": 34,
+  "cancellation_points": 138,
+  "failure_cases": 12,
+  "cross_volume_cases": 81,
+  "publication_cases": 3,
+  "compressed_patterns": 2,
+  "decoded_sha256": "d5197d4d3552880691e5fa91afc5b55a858f305c2d4f9e9b8281a2216a716c19",
+  "reference_sha256": {
+    "vgm_metadata.go.txt": "fa28b6c3f7239a8dfbe3f216cb6044b735513fae9056a60fe33d912f19d7363a",
+    "mrz.go.txt": "86d0b55d2e885abcd9f5b13c9785f13aa10b1b10f02ee9e459f9378616ec4ce4"
+  },
+  "mismatches": 0,
+  "compressed_byte_equality_required": false
+}

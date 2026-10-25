@@ -1,0 +1,21 @@
+LIBRARY independent_opm
+EXPORTS
+    iopm_abi_version
+    iopm_version
+    iopm_create
+    iopm_destroy
+    iopm_reset
+    iopm_clone
+    iopm_write_register
+    iopm_read_status
+    iopm_clock_count
+    iopm_set_measured_output_timing
+    iopm_set_output_delays
+    iopm_render_f32
+    iopm_render_s16
+    iopm_render_events_f32
+    iopm_state_size
+    iopm_save_state
+    iopm_load_state
+    iopm_render_channels_f32
+    iopm_render_events_channels_f32

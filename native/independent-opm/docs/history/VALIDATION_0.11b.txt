@@ -1,0 +1,8 @@
+g++ -std=c++17 -O2 -Wall -Wextra
+PASS: reset, BUSY, CT, timer A/B, A440 waveform, pan, MUL, KF, release, chunking, state copy, algorithms, resampler
+PASS: 256 frequency cadences, register restarts, reset hold/resume, waveform endpoints, random/state, envelope times
+PASS: all 8 algorithms x 8 channels; one-frame causal output, channel isolation, partial stereo, copy/chunking/reset/range
+PASS: 14336 independent capture vectors, divider/chunk/hold checks, 161446-bit recurrence
+PASS: 131072 states, direct expression equals 16 sequential updates
+
+MSVC and CMake/CTest were not executed in this environment.

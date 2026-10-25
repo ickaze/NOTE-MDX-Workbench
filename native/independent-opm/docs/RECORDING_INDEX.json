@@ -1,0 +1,465 @@
+[
+  {
+    "recording": "37AMSAW.flac",
+    "mdx": [
+      "37AMSAW.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "99ec9e81eeb34d3f331627cbf25dce3acc569ad4ed1780f967b71c956e967756",
+    "duration_s": 776.874667,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "25F00.flac",
+    "mdx": [
+      "25F00.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "a32abd1b5c232b6914820e069e35e00eb8af50b1cad4f9cdb6f6af292a461f27",
+    "duration_s": 1200.043271,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "13CAL.flac",
+    "mdx": [
+      "13CAL.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "9ace413250b8c914cb4cdcc3bc81074fc657ae789d526f25688f64fbe896d115",
+    "duration_s": 31.723979,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "27F20.flac",
+    "mdx": [
+      "27F20.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "b33c37b96253278e5270686f0b1cf578d75b8ff743cc3d48ac83934a4f869df7",
+    "duration_s": 773.435354,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "15AMDEP.flac",
+    "mdx": [
+      "15AMDEP.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "dd4c91a2b957ff17c26fa388fe61a90cb617f93145d53640529cc875840081ee",
+    "duration_s": 213.884031,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "34CHAN.flac",
+    "mdx": [
+      "34CHAN.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "463b9eee511761771faa4a6f68bd0a586e7efa96a3e564f8b6f2012934ff7a0c",
+    "duration_s": 133.808083,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "31F60.flac",
+    "mdx": [
+      "31F60.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "d1ef1b454e1ad6c3ddd6a3dbc1ea8246a461cd626fefbea0a5f00e8b036b437c",
+    "duration_s": 165.372844,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "19FA0.flac",
+    "mdx": [
+      "19FA0.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "9d2859bd30f6dd673963ffcaee822db90a128a6e31f5d0a3277b160a266067ce",
+    "duration_s": 197.363938,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "14WAVE.flac",
+    "mdx": [
+      "14WAVE.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "b7931989352efa46c1dccfcf4fde4933304f4517b1dde1cffbe632823d9caa99",
+    "duration_s": 185.39524,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "08LONG.wav",
+    "mdx": [
+      "08LONG.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "9403741a6d5baf5af322929444af4311a5038cf6363cc1cda46f6c41691e4db2",
+    "duration_s": 673.469333,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "22FD0.flac",
+    "mdx": [
+      "22FD0.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "e82780477b6690255a5710fe554dc9139990a05f8387e4e1194541da0968cc71",
+    "duration_s": 197.371302,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "41PMTRI.flac",
+    "mdx": [
+      "41PMTRI.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "6777f44752875e8abdd983dae7abd61d0e06c67175ed5b9fe47aa011fbc1b23a",
+    "duration_s": 773.521479,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "25R1.flac",
+    "mdx": [
+      "25R1.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "1cab4ab49c06f40492ef3df2bf5d5ddb19aa2523bd4678ee9c1fdf1687a67ea1",
+    "duration_s": 740.301146,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "12TRANS.wav",
+    "mdx": [
+      "12TRANS.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "e1bc54589fedd3f998e9980b740d359e9647af832b3fe97779dbafdc9c0c4040",
+    "duration_s": 64.430333,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "32F70.flac",
+    "mdx": [
+      "32F70.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "1859c0325acf6c303f520c544fcd753e53647516e6871532035f08a9ad748d39",
+    "duration_s": 255.789938,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "26A.flac",
+    "mdx": [],
+    "sequence_numbers": null,
+    "sha256": "80cad57441614f115ef26f7c669f3a6bbd0485bd2233918c24e951f84d2f0615",
+    "duration_s": 737.06375,
+    "mapping_status": "split recording identifier; original split MDX not present"
+  },
+  {
+    "recording": "25R2.flac",
+    "mdx": [
+      "25R2.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "bb52b5630669d33382d1ffbf90b2d36211c8953b7287ffea9ec7b319133274e8",
+    "duration_s": 724.665198,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "40PMSAW.flac",
+    "mdx": [
+      "40PMSAW.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "b05afe887560c0e090d711fa1ef366418382b7066bf20ecd95dd74c9feeb26ae",
+    "duration_s": 774.144,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "29F40.flac",
+    "mdx": [
+      "29F40.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "645bc1ec7e6323bad29d9b1c96553bf301c8fb0b13bd2db93b6b88cfa30fe4e6",
+    "duration_s": 245.444667,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "26B.flac",
+    "mdx": [],
+    "sequence_numbers": null,
+    "sha256": "89c9b11a5b47b813d864b8043accf2072dcf7bb6d5f1776dc9d86e59ca2ccd78",
+    "duration_s": 730.932,
+    "mapping_status": "split recording identifier; original split MDX not present"
+  },
+  {
+    "recording": "35JOINT.flac",
+    "mdx": [
+      "35JOINT.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "5b2b3ef16b12d91ddbbbaa07e086840d8988f5efad9a61c00c2598e7a4ef7b74",
+    "duration_s": 65.439094,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "24FF0.flac",
+    "mdx": [
+      "24FF0.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "61211a575a589367182f5bf8ff0ce4585e1c44941fd423255bada9dd0fcffa97",
+    "duration_s": 197.362906,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "21FC0.flac",
+    "mdx": [
+      "21FC0.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "257f5fbbaeacae3c972e300869218f3ab16f6b5fa20cdb4c762a38e13073e49f",
+    "duration_s": 197.362688,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "20FB0.flac",
+    "mdx": [
+      "20FB0.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "e31fa37bda070e1470f0265b095bdfaef5d3a5003c838d8915d1b149040f7740",
+    "duration_s": 197.358156,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "42STATE.flac",
+    "mdx": [
+      "42STATE.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "ca54da2503fe46355708bfbd6ace686ccd91ee09e494e3006dea1a8cd82820a3",
+    "duration_s": 222.833333,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "38AMSQR.flac",
+    "mdx": [
+      "38AMSQR.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "ac4b902b23485afeabc96e67cf3f28937be099ce4e5579812e6c71bd6cca787e",
+    "duration_s": 774.144,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "33STATE.flac",
+    "mdx": [
+      "33STATE.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "33fa9b46ba12e3f34c327af0cbef2c5dff2306d0ed8545e1dd968ebdbb52db93",
+    "duration_s": 123.903865,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "18F90.flac",
+    "mdx": [
+      "18F90.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "e82c4ab0da543687e343e1a2f3abb30e278f7c8bef94cf03a98a17ccce049a79",
+    "duration_s": 197.351625,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "28F30.flac",
+    "mdx": [
+      "28F30.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "db16072e7eb2fbae75ad16f58a95a13f4996268d491cf68c0bfc7308f9b12e52",
+    "duration_s": 421.381865,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "16PMDEP.flac",
+    "mdx": [
+      "16PMDEP.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "506232272adb466d0b33cc1d5addd71a6a506908d13417a25b7270594a4b210f",
+    "duration_s": 416.356229,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "26F10.flac",
+    "mdx": [
+      "26F10.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "264be1baa18cf0781bdebe20ed9673ac45fe7356bb9fd8b4e33b1511701056b5",
+    "duration_s": 1200.032813,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "36CLOCK.flac",
+    "mdx": [
+      "36CLOCK.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "fb8b8cc357b169021d81dc46667196febbd577dfda257db0a68a88988a07ca72",
+    "duration_s": 417.811115,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "23FE0.flac",
+    "mdx": [
+      "23FE0.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "c7fde4460fde68d2c1e766ae5f576818dc878769e0ca7123b550e12d296dc880",
+    "duration_s": 197.337979,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "17F80.flac",
+    "mdx": [
+      "17F80.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "77d2abfb77977c0af2c12e6e48acb21b02452268f7288256b23eb49b0f17fa34",
+    "duration_s": 197.348146,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "39AMTRI.flac",
+    "mdx": [
+      "39AMTRI.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "6dd440f65fcd539f41abf7ab3e9a8b3f6cab8cd331fb406aae05b87f578036e1",
+    "duration_s": 774.144,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "25R3.flac",
+    "mdx": [
+      "25R3.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "641626d7f91ccd30f0ae90e84a6574c3605226530e6b415c5e796d6c5cab5991",
+    "duration_s": 375.238906,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "30F50.flac",
+    "mdx": [
+      "30F50.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "a2bb8aa6f676dfd1f14ec5e83fe571ca8ed8a1dbff7659b81d89a567d1fa59ec",
+    "duration_s": 165.373208,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "combined/00_07.wav",
+    "mdx": [],
+    "sequence_numbers": "00_07",
+    "sha256": "3f101782bdba3f72a59a37898f48948e13c7a8f970710199a74edc4519b0ed97",
+    "duration_s": 797.354667,
+    "mapping_status": "combined capture; individual MDX filenames not present in recovered stimulus archive"
+  },
+  {
+    "recording": "combined/09_11.wav",
+    "mdx": [],
+    "sequence_numbers": "09_11",
+    "sha256": "cc9e286e028434c1ba3ef2e0d03f3c0270db4cb13b862d91f45d2df7db7d525a",
+    "duration_s": 316.385125,
+    "mapping_status": "combined capture; individual MDX filenames not present in recovered stimulus archive"
+  },
+  {
+    "recording": "combined/06_07.wav",
+    "mdx": [],
+    "sequence_numbers": "06_07",
+    "sha256": "47346f8500fd09b43a25bf8a311de91c454fc3ad125e7aebdab33bf54c7e24c9",
+    "duration_s": 215.808,
+    "mapping_status": "combined capture; individual MDX filenames not present in recovered stimulus archive"
+  },
+  {
+    "recording": "takes/initial/25F00.flac",
+    "mdx": [
+      "25F00.MDX"
+    ],
+    "sequence_numbers": null,
+    "sha256": "b92f79db8bd78de786ac5d87363f78736d2ccac9bfd4576075e5c59061259711",
+    "duration_s": 13.526042,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "01SOLO.wav",
+    "mdx": [
+      "01SOLO.MDX"
+    ],
+    "sha256": "772bfbd0aedf02613de6ae64e896c23377e2b198e3e2994c0a494d77ce60d2bf",
+    "duration_s": 18.716729,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "02LIVE.wav",
+    "mdx": [
+      "02LIVE.MDX"
+    ],
+    "sha256": "eca0ed7ab5c211099726731fc897ff87aa6135b9f43eff2bc3d1457d3b093a43",
+    "duration_s": 29.882063,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "03CHSCAN.wav",
+    "mdx": [
+      "03CHSCAN.MDX"
+    ],
+    "sha256": "ba44831e385b06f214b8c16bf377a00fcba688aacd520e2e2100865f4b564a32",
+    "duration_s": 123.5195,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "04PITCH.wav",
+    "mdx": [
+      "04PITCH.MDX"
+    ],
+    "sha256": "02fcd75b2da1d37b9f9a5067e09482d8ca2021bb1fba41e6177b3d7b6e8a2f6b",
+    "duration_s": 58.77875,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "05SINE.wav",
+    "mdx": [
+      "05SINE.MDX"
+    ],
+    "sha256": "1fd003609d4c582d144ef4d6b0aa8c5495c1060b9062000c0ed45264d8b3611a",
+    "duration_s": 122.523375,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "06PAIR.wav",
+    "mdx": [
+      "06PAIR.MDX"
+    ],
+    "sha256": "0b95ab35f4458e6cda8c6049f4367e5c9c98a5d24200a78e464d8ff676a90a33",
+    "duration_s": 38.344396,
+    "mapping_status": "MDX basename"
+  },
+  {
+    "recording": "07LOAD.wav",
+    "mdx": [
+      "07LOAD.MDX"
+    ],
+    "sha256": "ce817558434338c9b2a9fd6d1ef276c996109c446aaa310e15c7d9089f3b6686",
+    "duration_s": 17.294375,
+    "mapping_status": "MDX basename"
+  }
+]

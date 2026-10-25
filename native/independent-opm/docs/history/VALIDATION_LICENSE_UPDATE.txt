@@ -1,0 +1,8 @@
+HISTORICAL LOG ONLY: an earlier license-update stage, not the current 0.11b package.
+The retained-verbatim statement below does NOT describe the current THIRD_PARTY_NOTICES.txt.
+Its exact historical input artifacts were not revalidated in this correction.
+Current comparison: LICENSE_HISTORY_CORRECTION.md.
+
+PASS: 9 C++ files unchanged except license comments.
+PASS: original third-party notice retained verbatim.
+PASS: 131071 output bits: Fibonacci, Galois, complemented XNOR, ring recurrence; matrix jumps; mapped seeds

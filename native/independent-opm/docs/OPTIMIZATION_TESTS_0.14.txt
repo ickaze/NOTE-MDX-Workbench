@@ -1,0 +1,42 @@
+2026-10-11 Linux GCC; rebuilt 0.14
+test_c_api.c: 0
+C ABI tests passed
+
+test_channels.cpp: 0
+channel render passed
+
+test_core.cpp: 0
+PASS: reset, BUSY, CT, timer A/B, A440 waveform, pan, MUL, KF, release, chunking, state copy, algorithms, resampler
+
+test_dll_equivalence.cpp: 0
+DLL vs direct core: 4096 frames identical
+
+test_key_on.cpp: 0
+@80 ALG6 timing=0 peak=0.0526896559 rms=0.0201701828
+@80 ALG6 timing=1 peak=0.0526896559 rms=0.0201701828
+@83 ALG7 timing=0 peak=0.0399907975 rms=0.00768671246
+@83 ALG7 timing=1 peak=0.0399907975 rms=0.00768671245
+@11 ALG5 timing=0 peak=0.0342302454 rms=0.0220695803
+@11 ALG5 timing=1 peak=0.0342302454 rms=0.0220695081
+PASS: 128 key masks, channel isolation, key-off, CSM, 3 corrected voices
+
+test_noise_level.cpp: 0
+PASS: hardware noise normalization band / 8 algorithms / 3 frequencies / TL curve
+
+test_output_timing.cpp: 0
+PASS: all 8 algorithms x 8 channels; one-frame causal output, channel isolation, partial stereo, copy/chunking/reset/range
+
+test_periodic.cpp: 0
+PASS: 96 recorded step trains (5689 steps), 128 recorded AM levels, state policy, rendered PM, copy/chunk
+
+test_precision.cpp: 0
+PASS: sequence orbit and published envelope times
+
+test_random.cpp: 0
+PASS: 14336 independent capture vectors, divider/chunk/hold checks, 161446-bit recurrence
+
+test_sequence.cpp: 0
+PASS: 131072 states, direct expression equals 16 sequential updates
+
+test_state.cpp: 0
+PASS: core full-state roundtrip, four LFO shapes, timers/BUSY/latch/release, corruption atomicity; DLL filter/remainder restore, cross-config restore, identical 4096 frames

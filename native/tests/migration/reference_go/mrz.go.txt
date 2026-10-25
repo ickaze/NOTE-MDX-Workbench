@@ -1,0 +1,185 @@
+package main
+
+import (
+	"compress/flate"
+	"encoding/binary"
+	"fmt"
+	"hash/crc32"
+	"io"
+	"os"
+	"path/filepath"
+)
+
+// Write the IndependentMDX MRZ profile: one DEFLATE member in a ZIP64 container.
+// Staging keeps memory bounded and leaves publication to the output job.
+func writeMrz(source, target string, checkpoint func() bool, progress func(int)) error {
+	in, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	info, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	packed, err := os.CreateTemp(filepath.Dir(source), "workbench-mrz-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(packed.Name())
+	defer packed.Close()
+	deflater, err := flate.NewWriter(packed, flate.DefaultCompression)
+	if err != nil {
+		return err
+	}
+	checksum := crc32.NewIEEE()
+	buffer := make([]byte, 65536)
+	var total int64
+	for {
+		if !checkpoint() {
+			deflater.Close()
+			return fmt.Errorf("Export cancelled")
+		}
+		n, readErr := in.Read(buffer)
+		if n > 0 {
+			checksum.Write(buffer[:n])
+			if _, err = deflater.Write(buffer[:n]); err != nil {
+				deflater.Close()
+				return err
+			}
+			total += int64(n)
+			if info.Size() > 0 {
+				progress(900 + int(total*80/info.Size()))
+			}
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			deflater.Close()
+			return readErr
+		}
+	}
+	if err = deflater.Close(); err != nil {
+		return err
+	}
+	compressed, err := packed.Stat()
+	if err != nil {
+		return err
+	}
+	if _, err = packed.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	out, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	var writeErr error
+	put := func(value uint64, count int) {
+		if writeErr != nil {
+			return
+		}
+		var bytes [8]byte
+		binary.LittleEndian.PutUint64(bytes[:], value)
+		_, writeErr = out.Write(bytes[:count])
+	}
+	name := "record.mrl"
+	put(0x04034b50, 4)
+	put(45, 2)
+	put(0x800, 2)
+	put(8, 2)
+	put(0, 4)
+	put(uint64(checksum.Sum32()), 4)
+	put(0xffffffff, 4)
+	put(0xffffffff, 4)
+	put(uint64(len(name)), 2)
+	put(20, 2)
+	if writeErr == nil {
+		_, writeErr = io.WriteString(out, name)
+	}
+	put(1, 2)
+	put(16, 2)
+	put(uint64(total), 8)
+	put(uint64(compressed.Size()), 8)
+	if writeErr != nil {
+		return writeErr
+	}
+	for {
+		if !checkpoint() {
+			return fmt.Errorf("Export cancelled")
+		}
+		n, readErr := packed.Read(buffer)
+		if n > 0 {
+			if _, err = out.Write(buffer[:n]); err != nil {
+				return err
+			}
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return readErr
+		}
+	}
+	central, err := out.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return err
+	}
+	put(0x02014b50, 4)
+	put(45, 2)
+	put(45, 2)
+	put(0x800, 2)
+	put(8, 2)
+	put(0, 4)
+	put(uint64(checksum.Sum32()), 4)
+	put(0xffffffff, 4)
+	put(0xffffffff, 4)
+	put(uint64(len(name)), 2)
+	put(28, 2)
+	put(0, 2)
+	put(0, 2)
+	put(0, 2)
+	put(0, 4)
+	put(0xffffffff, 4)
+	if writeErr == nil {
+		_, writeErr = io.WriteString(out, name)
+	}
+	put(1, 2)
+	put(24, 2)
+	put(uint64(total), 8)
+	put(uint64(compressed.Size()), 8)
+	put(0, 8)
+	end, err := out.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return err
+	}
+	put(0x06064b50, 4)
+	put(44, 8)
+	put(45, 2)
+	put(45, 2)
+	put(0, 8)
+	put(1, 8)
+	put(1, 8)
+	put(uint64(end-central), 8)
+	put(uint64(central), 8)
+	put(0x07064b50, 4)
+	put(0, 4)
+	put(uint64(end), 8)
+	put(1, 4)
+	put(0x06054b50, 4)
+	put(0, 4)
+	put(65535, 2)
+	put(65535, 2)
+	put(0xffffffff, 4)
+	put(0xffffffff, 4)
+	put(0, 2)
+	if writeErr != nil {
+		return writeErr
+	}
+	if !checkpoint() {
+		return fmt.Errorf("Export cancelled")
+	}
+	progress(1000)
+	return out.Close()
+}

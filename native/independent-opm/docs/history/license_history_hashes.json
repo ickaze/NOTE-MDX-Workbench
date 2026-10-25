@@ -1,0 +1,44 @@
+[
+  {
+    "version": "0.10b",
+    "zip_sha256": "d93269d6626b7216a3767d46e73797a24a8df0c6b261299568b43782f53f6d3c",
+    "files": {
+      "LICENSE.txt": {
+        "sha256": "722225038ceffad7c40def86c20114294e38072d612c23d65162c7b771394843",
+        "bytes": 824
+      },
+      "THIRD_PARTY_NOTICES.txt": {
+        "sha256": "895c331794e89a967aeff48da733ae55837e5ae61323b3782fe4a5fb1fd03cf8",
+        "bytes": 1067
+      }
+    }
+  },
+  {
+    "version": "0.11",
+    "zip_sha256": "f0be0387a29727183b665450d865494fd9ebbdf8d8e0c7aeb46ce29576fa4299",
+    "files": {
+      "LICENSE.txt": {
+        "sha256": "722225038ceffad7c40def86c20114294e38072d612c23d65162c7b771394843",
+        "bytes": 824
+      },
+      "THIRD_PARTY_NOTICES.txt": {
+        "sha256": "895c331794e89a967aeff48da733ae55837e5ae61323b3782fe4a5fb1fd03cf8",
+        "bytes": 1067
+      }
+    }
+  },
+  {
+    "version": "0.11b",
+    "zip_sha256": "7498e61a7c3605911b4c500406c1aa978e947d2e0c2a1e4e01d3457af7cc4311",
+    "files": {
+      "LICENSE.txt": {
+        "sha256": "6fd46bc279753ff2f06019924d5e4877729545e72c93165d2fb3bab0bdeebec2",
+        "bytes": 632
+      },
+      "THIRD_PARTY_NOTICES.txt": {
+        "sha256": "45d7e2bfe56aa1f1e2f0da7f90770b2b3aebba7bc20359d333cb2982f7ed392f",
+        "bytes": 271
+      }
+    }
+  }
+]

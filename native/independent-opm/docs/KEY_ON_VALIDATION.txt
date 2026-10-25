@@ -1,0 +1,54 @@
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_core.cpp -o <build>/test_core
+
+$ <build>/test_core
+PASS: reset, BUSY, CT, timer A/B, A440 waveform, pan, MUL, KF, release, chunking, state copy, algorithms, resampler
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_precision.cpp -o <build>/test_precision
+
+$ <build>/test_precision
+PASS: sequence orbit and published envelope times
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_output_timing.cpp -o <build>/test_output_timing
+
+$ <build>/test_output_timing
+PASS: all 8 algorithms x 8 channels; one-frame causal output, channel isolation, partial stereo, copy/chunking/reset/range
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_random.cpp -o <build>/test_random
+
+$ <build>/test_random
+PASS: 14336 independent capture vectors, divider/chunk/hold checks, 161446-bit recurrence
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_sequence.cpp -o <build>/test_sequence
+
+$ <build>/test_sequence
+PASS: 131072 states, direct expression equals 16 sequential updates
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_periodic.cpp -o <build>/test_periodic
+
+$ <build>/test_periodic
+PASS: 96 recorded step trains (5689 steps), 128 recorded AM levels, state policy, rendered PM, copy/chunk
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/src/ym2151.cpp <project>/tests/test_key_on.cpp -o <build>/test_key_on
+
+$ <build>/test_key_on
+@80 ALG6 timing=0 peak=0.0526896559 rms=0.0201701828
+@80 ALG6 timing=1 peak=0.0526896559 rms=0.0201701828
+@83 ALG7 timing=0 peak=0.0399907975 rms=0.00768671246
+@83 ALG7 timing=1 peak=0.0399907975 rms=0.00768671245
+@11 ALG5 timing=0 peak=0.0342302454 rms=0.0220695803
+@11 ALG5 timing=1 peak=0.0342302454 rms=0.0220695081
+PASS: 128 key masks, channel isolation, key-off, CSM, 3 corrected voices
+
+$ g++ -O2 -std=c++17 -shared -fPIC -DIOPM_BUILD_DLL -I<project>/include <project>/src/ym2151.cpp <project>/src/dll_api.cpp -o <build>/libindependent_opm.so
+
+$ gcc -std=c11 -I<project>/include <project>/tests/test_c_api.c -L<build> -lindependent_opm -Wl,-rpath,<build> -lm -o <build>/test_c_api
+
+$ <build>/test_c_api
+C ABI tests passed
+
+$ g++ -O2 -std=c++17 -I<project>/include <project>/tests/test_dll_equivalence.cpp <project>/src/ym2151.cpp -L<build> -lindependent_opm -Wl,-rpath,<build> -o <build>/test_dll_equivalence
+
+$ <build>/test_dll_equivalence
+DLL vs direct core: 4096 frames identical
+
+Original shipped core + test_key_on: FAIL: C1 key (expected regression failure).

@@ -1,0 +1,185 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// Match NOTE's column-one directives and quoted string argument syntax.
+func pcmFileName(text string) (string, bool) {
+	name := ""
+	declared := false
+	listed := true
+	braces := 0
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		if braces == 0 && strings.HasPrefix(line, "#") {
+			at := strings.IndexAny(line, " \t\r")
+			key, value := line[1:], ""
+			if at >= 0 {
+				key, value = line[1:at], strings.TrimSpace(line[at+1:])
+			}
+			switch strings.ToLower(key) {
+			case "list":
+				listed = true
+			case "nlist":
+				listed = false
+			case "pcmfile":
+				if listed {
+					declared = true
+					var out strings.Builder
+					var quote rune
+					for _, c := range value {
+						if quote != 0 {
+							if c == quote {
+								quote = 0
+							} else {
+								out.WriteRune(c)
+							}
+							continue
+						}
+						if c == '\'' || c == '"' {
+							quote = c
+							continue
+						}
+						if c == ' ' || c == '\t' || c == '\r' || c == ';' || c == '*' {
+							break
+						}
+						out.WriteRune(c)
+					}
+					name = out.String()
+				}
+			}
+		}
+		// Definitions may contain continuation lines resembling directives.
+		if braces > 0 || strings.HasPrefix(line, "@") {
+			if comment := strings.IndexAny(line, ";*"); comment >= 0 {
+				line = line[:comment]
+			}
+			braces += strings.Count(line, "{") - strings.Count(line, "}")
+			if braces < 0 {
+				braces = 0
+			}
+		}
+	}
+	return name, declared
+}
+
+// PDX editing also accepts disabled reference lines; active definitions win.
+func pdxReferenceName(text string) (string, bool) {
+	if name, found := pcmFileName(text); found {
+		return name, true
+	}
+	name, found, braces := "", false, 0
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		original := line
+		trimmed := strings.TrimLeft(line, " \t")
+		commented := trimmed != original
+		for strings.HasPrefix(trimmed, "//") {
+			commented = true
+			trimmed = strings.TrimLeft(trimmed[2:], " \t")
+		}
+		if braces == 0 && commented {
+			if value, ok := pcmFileName(trimmed); ok {
+				name, found = value, true
+			}
+		}
+		if braces > 0 || strings.HasPrefix(original, "@") {
+			if comment := strings.IndexAny(line, ";*"); comment >= 0 {
+				line = line[:comment]
+			}
+			braces += strings.Count(line, "{") - strings.Count(line, "}")
+			if braces < 0 {
+				braces = 0
+			}
+		}
+	}
+	return name, found
+}
+func pdxProjectName(text, fallback string) string {
+	name, _ := pdxReferenceName(text)
+	if name == "" {
+		name = fallback
+	}
+	ext := filepath.Ext(name)
+	if strings.EqualFold(ext, ".pdx") || strings.EqualFold(ext, ".pdxedit") || strings.EqualFold(ext, ".pdxed") {
+		name = strings.TrimSuffix(name, ext)
+	}
+	return name + ".pdxedit"
+}
+
+// PDXEditor falls back to its last project when a command-line file is absent.
+// Create only a missing file in its documented editable-project format.
+func ensurePDXProject(path string) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+	if os.IsExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	name = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(name, "\\", "\\\\"), "\n", "\\n"), "\r", "")
+	_, err = file.WriteString("# PDXEditor editable project v2\npdxName=" + name + "\nformat=0\nsourceFormat=0\nsourcePdx=\ncurrentBank=0\nbankCount=256\n")
+	closeErr := file.Close()
+	if err != nil {
+		os.Remove(path)
+		return err
+	}
+	return closeErr
+}
+
+// Insert at the requested title anchor, preserving the document's newline style.
+func ensurePCMFileDirective(text, editorName string) (string, bool) {
+	// A nonempty parsed name signifies an existing active #pcmfile.
+	if _, declared := pdxReferenceName(text); declared {
+		return text, false
+	}
+	newline := "\n"
+	if strings.Contains(text, "\r\n") {
+		newline = "\r\n"
+	}
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	name := strings.ReplaceAll(editorName, "\"", "")
+	directive := "#pcmfile \"" + name + ".pdx\""
+	at := 0
+	for i, line := range lines {
+		fields := strings.Fields(line)
+		if strings.HasPrefix(line, "#") && len(fields) > 0 && strings.EqualFold(fields[0], "#title") {
+			at = i + 1
+			break
+		}
+	}
+	lines = append(lines, "")
+	copy(lines[at+1:], lines[at:])
+	lines[at] = directive
+	return strings.Join(lines, newline), true
+}
+
+// Keep project and PDX paths anchored to the edited MUS, independently of PCM extraction.
+func preparePDXEditTarget(source, text, editorName string) (string, error) {
+	project := filepath.Join(filepath.Dir(source), filepath.Base(pdxProjectName(text, editorName)))
+	if info, err := os.Stat(project); err == nil {
+		if info.IsDir() {
+			return "", fmt.Errorf("PDX project is a directory: %s", project)
+		}
+		return project, nil
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+	pdx := strings.TrimSuffix(project, filepath.Ext(project)) + ".pdx"
+	if info, err := os.Stat(pdx); err == nil {
+		if info.IsDir() {
+			return "", fmt.Errorf("PDX file is a directory: %s", pdx)
+		}
+		// Native import creates the project only after extraction succeeds.
+		return pdx, nil
+	} else if !os.IsNotExist(err) {
+		return "", err
+	}
+	if err := ensurePDXProject(project); err != nil {
+		return "", err
+	}
+	return project, nil
+}

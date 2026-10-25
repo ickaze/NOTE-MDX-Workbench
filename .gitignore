@@ -1,0 +1,29 @@
+# Build outputs (bin/ contains the intentionally distributed release files).
+/build-*/
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/Testing/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+__pycache__/
+*.pyc
+.vs/
+.vscode/
+# Generated Windows icon resource is intentionally tracked.
+!/resource_windows_amd64.syso
+# Local settings, autosaves and output jobs, wherever the app is run.
+*_Autosave*
+NOTE-MDX-Workbench.json
+NOTE-MDX-Workbench.ini
+PDXEditor.ini
+PDXEditor.last
+GUI_SMOKE_*
+workbench-*
+# User projects and exports belong outside the source tree.
+*.pdxedit
+

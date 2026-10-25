@@ -1,0 +1,32 @@
+{
+  "package_version": "0.11b",
+  "documentation_revision": "docs-review-20260925",
+  "comparison_input_zip_sha256": "ebdb335ceaf6c4c9a82c2386fd6fb41463fc0652ee3c99cb2b0fad62ccdd50d2",
+  "api_count": 17,
+  "header_def_dll_exports_equal": true,
+  "exports": [
+    "iopm_abi_version",
+    "iopm_clock_count",
+    "iopm_clone",
+    "iopm_create",
+    "iopm_destroy",
+    "iopm_load_state",
+    "iopm_read_status",
+    "iopm_render_events_f32",
+    "iopm_render_f32",
+    "iopm_render_s16",
+    "iopm_reset",
+    "iopm_save_state",
+    "iopm_set_measured_output_timing",
+    "iopm_set_output_delays",
+    "iopm_state_size",
+    "iopm_version",
+    "iopm_write_register"
+  ],
+  "uploaded_dll": {
+    "original_name": "independent_opm(3).dll",
+    "sha256": "e24a3356edc62e7cd677a89de13ee1db67fc4b37fc9e9ce1e4d13fbc91d861dd",
+    "architecture": "PE32+ x86-64",
+    "inspection": "static export inspection only; Windows execution not performed"
+  }
+}

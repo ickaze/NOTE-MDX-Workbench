@@ -1,0 +1,24 @@
+{
+  "version": "2.10.0-alpha.6",
+  "scope": "synchronous full-document compilation decoration integration",
+  "portable_algorithms": "existing 95205-case frozen Go comparison; 93905 C ABI cases re-executed",
+  "windows_runtime_executed": false,
+  "windows_expected": {
+    "common": 286,
+    "output": 100,
+    "analysis": 88,
+    "decoration": 87,
+    "total": 561
+  },
+  "decoration_count_basis": {
+    "setup": 1,
+    "fixtures": 14,
+    "checks_per_fixture": 6,
+    "abi_checks": 2
+  },
+  "limitations": [
+    "new decorated compiler export and shared JSON fields require Windows execution",
+    "Go GUI, settings, monitoring, job control and result adapters remain",
+    "no performance improvement measured"
+  ]
+}

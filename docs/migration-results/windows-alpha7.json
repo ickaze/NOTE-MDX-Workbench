@@ -1,0 +1,33 @@
+{
+  "version": "2.10.0-alpha.7",
+  "ok": true,
+  "checks": 1150,
+  "failures": [],
+  "sections": {
+    "analysis": {
+      "checks": 88,
+      "expected": 88,
+      "failures": 0
+    },
+    "common": {
+      "checks": 286,
+      "expected": 286,
+      "failures": 0
+    },
+    "decoration": {
+      "checks": 87,
+      "expected": 87,
+      "failures": 0
+    },
+    "output": {
+      "checks": 100,
+      "expected": 100,
+      "failures": 0
+    },
+    "positions": {
+      "checks": 589,
+      "expected": 589,
+      "failures": 0
+    }
+  }
+}

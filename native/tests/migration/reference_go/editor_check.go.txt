@@ -1,0 +1,153 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+	"time"
+	"unicode/utf16"
+)
+
+const editorCheckDelay = 500 * time.Millisecond
+
+type editorCheckTicket struct{ Generation, Revision uint64 }
+type editorCheckGate struct {
+	generation uint64
+	editedAt   time.Time
+	queued     bool
+}
+
+func (gate *editorCheckGate) Change(now time.Time) {
+	gate.generation++
+	gate.editedAt = now
+	gate.queued = false
+}
+func (gate *editorCheckGate) Cancel() {
+	gate.generation++
+	gate.editedAt = time.Time{}
+	gate.queued = true
+}
+func (gate *editorCheckGate) Take(now time.Time, revision uint64) (editorCheckTicket, bool) {
+	if gate.queued || gate.editedAt.IsZero() || now.Sub(gate.editedAt) < editorCheckDelay {
+		return editorCheckTicket{}, false
+	}
+	gate.queued = true
+	return editorCheckTicket{gate.generation, revision}, true
+}
+func (gate *editorCheckGate) Accept(ticket editorCheckTicket, revision uint64) bool {
+	return gate.queued && ticket.Generation == gate.generation && ticket.Revision == revision
+}
+
+type sourceEvent struct {
+	Track  int    `json:"track"`
+	Offset uint64 `json:"offset"`
+	Line   int    `json:"line"`
+	Column int    `json:"column"`
+	Steps  uint64 `json:"steps"`
+	Char   int
+}
+type editorDiagnostic struct {
+	Error        bool   `json:"error"`
+	File         string `json:"file"`
+	Line         int    `json:"line"`
+	Column       int    `json:"column"`
+	EditorLine   int    `json:"editorLine"`
+	EditorColumn int    `json:"editorColumn"`
+}
+type editorErrorSpan struct{ Begin, End int32 }
+
+func accumulateLineSteps(events []sourceEvent) map[int][16]uint64 {
+	rows := make(map[int][16]uint64)
+	for _, event := range events {
+		if event.Track < 0 || event.Track >= 16 || event.Line < 1 {
+			continue
+		}
+		values := rows[event.Line]
+		if ^uint64(0)-values[event.Track] < event.Steps {
+			values[event.Track] = ^uint64(0)
+		} else {
+			values[event.Track] += event.Steps
+		}
+		rows[event.Line] = values
+	}
+	return rows
+}
+
+// Compiler columns count CP932 bytes; RichEdit positions count UTF-16 units.
+// The byte-width function belongs to the platform's CP932 conversion.
+func buildErrorSpans(text string, diagnostics []editorDiagnostic, byteWidth func(string) int) []editorErrorSpan {
+	units := utf16.Encode([]rune(text))
+	starts := []int{0}
+	for index := 0; index < len(units); index++ {
+		if units[index] == '\r' || units[index] == '\n' {
+			if units[index] == '\r' && index+1 < len(units) && units[index+1] == '\n' {
+				index++
+			}
+			starts = append(starts, index+1)
+		}
+	}
+	seen := map[editorErrorSpan]bool{}
+	var spans []editorErrorSpan
+	for _, diagnostic := range diagnostics {
+		if !diagnostic.Error || diagnostic.EditorLine < 1 || diagnostic.EditorLine > len(starts) || diagnostic.EditorColumn < 1 {
+			continue
+		}
+		start := starts[diagnostic.EditorLine-1]
+		end := start
+		for end < len(units) && units[end] != '\r' && units[end] != '\n' {
+			end++
+		}
+		position, column := start, 1
+		for position < end {
+			next := position + 1
+			if units[position] >= 0xd800 && units[position] <= 0xdbff && next < end && units[next] >= 0xdc00 && units[next] <= 0xdfff {
+				next++
+			}
+			width := byteWidth(string(utf16.Decode(units[position:next])))
+			if width < 1 {
+				width = 1
+			}
+			if column+width > diagnostic.EditorColumn {
+				break
+			}
+			column += width
+			position = next
+		}
+		// A missing argument can be reported immediately after the last character.
+		if position == end {
+			if end == start {
+				continue
+			}
+			position--
+			if units[position] >= 0xdc00 && units[position] <= 0xdfff && position > start {
+				position--
+			}
+		}
+		tokenEnd := mmlTokenEnd(units, position)
+		if tokenEnd == position+1 && units[position] >= 0xd800 && units[position] <= 0xdbff && tokenEnd < end && units[tokenEnd] >= 0xdc00 && units[tokenEnd] <= 0xdfff {
+			tokenEnd++
+		}
+		if tokenEnd > end {
+			tokenEnd = end
+		}
+		span := editorErrorSpan{int32(position), int32(tokenEnd)}
+		if span.End > span.Begin && !seen[span] {
+			seen[span] = true
+			spans = append(spans, span)
+		}
+	}
+	return spans
+}
+func buildGutterText(text string, steps map[int][16]uint64) string {
+	var rows strings.Builder
+	for line, count := 1, strings.Count(text, "\n")+1; line <= count; line++ {
+		if line > 1 {
+			rows.WriteString("\r\n")
+		}
+		rows.WriteString(formatGutterRow(line, steps[line]))
+	}
+	return rows.String()
+}
+
+func formatGutterRow(line int, steps [16]uint64) string {
+	return fmt.Sprintf("%d  %s", line, formatLineSteps(steps))
+}

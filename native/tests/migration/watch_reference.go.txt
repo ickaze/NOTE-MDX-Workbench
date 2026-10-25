@@ -1,0 +1,28 @@
+// Fixed alpha.7 watch decision body with only its file-stat dependency replaced.
+package main
+import("bufio";"fmt";"os";"strconv";"time")
+var app struct{lastSrcTime,lastPdxTime time.Time}
+type fixtureInfo struct{stamp time.Time}
+func(f fixtureInfo)ModTime()time.Time{return f.stamp}
+func fixtureStat(s string)(fixtureInfo,error){if s=="missing"{return fixtureInfo{},fmt.Errorf("missing")};n,e:=strconv.ParseInt(s,10,64);return fixtureInfo{time.Unix(0,n)},e}
+func observe(src,pdx string)bool{
+	st, err := fixtureStat(src)
+	if err != nil {
+		return false
+	}
+	changed := false
+	if !app.lastSrcTime.IsZero() && !st.ModTime().Equal(app.lastSrcTime) {
+		changed = true
+	}
+	app.lastSrcTime = st.ModTime()
+	if pdx != "" {
+		if ps, e := fixtureStat(pdx); e == nil {
+			if !app.lastPdxTime.IsZero() && ps.ModTime().After(app.lastPdxTime) {
+				changed = true
+			}
+			app.lastPdxTime = ps.ModTime()
+		}
+	}
+ return changed
+}
+func main(){in:=bufio.NewReader(os.Stdin);out:=bufio.NewWriter(os.Stdout);defer out.Flush();for{var s,p string;if _,e:=fmt.Fscan(in,&s,&p);e!=nil{return};if s=="reset"{app.lastSrcTime=time.Time{};app.lastPdxTime=time.Time{};continue};b:=observe(s,p);known:=func(t time.Time)int{if t.IsZero(){return 0};return 1};stamp:=func(t time.Time)int64{if t.IsZero(){return 0};return t.UnixNano()};flag:=0;if b{flag=1};fmt.Fprintln(out,flag,known(app.lastSrcTime),stamp(app.lastSrcTime),known(app.lastPdxTime),stamp(app.lastPdxTime))}}

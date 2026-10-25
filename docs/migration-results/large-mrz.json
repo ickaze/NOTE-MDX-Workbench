@@ -1,0 +1,10 @@
+{
+  "input_bytes": 4295032833,
+  "crc32": 1401942155,
+  "decoded_sha256": "94af1d27b62cdc4881bc91614c380770757519aee15e7afc0e5e0ae88109123f",
+  "cpp_mrz_bytes": 4174843,
+  "go_mrz_bytes": 4174719,
+  "decoded_match": true,
+  "zip64_size_match": true,
+  "crc_checked_by_decoder": true
+}

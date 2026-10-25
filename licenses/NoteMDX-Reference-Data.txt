@@ -1,0 +1,22 @@
+Upstream license notice, preserved verbatim below.
+Source: https://github.com/ickaze/noteMDX/blob/f5c53ba108383ef773ab2eaf8112988ad01d548d/LICENSE-DATA.md
+The relative Markdown links in the quoted original refer to that upstream repository.
+
+# Reference material license / 参照資料のライセンス
+
+Copyright (c) I.C.KaZe
+
+I.C.KaZeが提供した `tests/il_reference` の11曲のMUS・MDX、および `tests/reference` と `tests/large64k_reference` の参照資料に含まれる同氏の著作物は、Creative Commons Attribution 4.0 International (CC BY 4.0) で提供します。変換結果の互換性を検証するテスト資料として収録しています。
+
+複製・再配布・改変・商用利用が可能です。再利用時はI.C.KaZeのクレジット、ライセンスへのリンク、変更した場合はその旨を表示してください。追加の法的・技術的制限を課さないでください。正式な条件は下記のライセンス本文を参照してください。
+
+- License: https://creativecommons.org/licenses/by/4.0/
+- Legal code: https://creativecommons.org/licenses/by/4.0/legalcode.en
+
+Illumination LASERのタイトルコピーライト：**(C) 2000 MYO GAME**。
+この表記はタイトルの権利表示です。ゲーム全体、ロゴ、画像、他の制作者の著作物にCC BYを付与するものではありません。参照ファイル内の第三者の表示・原版プログラムの出力文は、それぞれの権利を保持します。
+
+The works by I.C.KaZe in the supplied reference material listed above are licensed under CC BY 4.0 International and included for converter compatibility testing. Sharing and adaptation, including commercial reuse, are permitted under that license: credit I.C.KaZe, link the license, indicate changes, and impose no additional restrictions. Illumination LASER title copyright: (C) 2000 MYO GAME. This grant does not license the entire game or other parties' works.
+
+`note.doc` とその翻訳・転載部分、および同文書由来の音色定義例は、この許諾の対象外です。[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)を参照してください。新規ソースコードの0BSDは[LICENSE](LICENSE)に記載しています。
+

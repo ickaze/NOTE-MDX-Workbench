@@ -1,0 +1,55 @@
+package main
+
+import "unicode/utf16"
+
+func sourceLocation(text string, offset uint32) (int, int) {
+	units := utf16.Encode([]rune(text))
+	if int(offset) > len(units) {
+		offset = uint32(len(units))
+	}
+	line, start := 1, 0
+	for i := 0; i < int(offset); i++ {
+		if units[i] == '\r' || units[i] == '\n' {
+			if units[i] == '\r' && i+1 < int(offset) && units[i+1] == '\n' {
+				i++
+			}
+			line++
+			start = i + 1
+		}
+	}
+	return line, positionByteWidth(string(utf16.Decode(units[start:offset]))) + 1
+}
+
+func eventCharacter(text string, line, column int) int {
+	units := utf16.Encode([]rune(text))
+	current, start := 1, 0
+	for i := 0; i < len(units) && current < line; i++ {
+		if units[i] == '\r' || units[i] == '\n' {
+			if units[i] == '\r' && i+1 < len(units) && units[i+1] == '\n' {
+				i++
+			}
+			current++
+			start = i + 1
+		}
+	}
+	if current != line {
+		return -1
+	}
+	bytes := 1
+	for i := start; i < len(units); {
+		if bytes >= column {
+			return i
+		}
+		if units[i] == '\r' || units[i] == '\n' {
+			break
+		}
+		end := i + 1
+		if units[i] >= 0xd800 && units[i] <= 0xdbff && end < len(units) {
+			end++
+		}
+		bytes += positionByteWidth(string(utf16.Decode(units[i:end])))
+		i = end
+	}
+	return -1
+}
+

@@ -1,0 +1,27 @@
+{
+  "package_version": "0.14",
+  "api_count": 19,
+  "exports": [
+    "iopm_abi_version",
+    "iopm_clock_count",
+    "iopm_clone",
+    "iopm_create",
+    "iopm_destroy",
+    "iopm_load_state",
+    "iopm_read_status",
+    "iopm_render_channels_f32",
+    "iopm_render_events_channels_f32",
+    "iopm_render_events_f32",
+    "iopm_render_f32",
+    "iopm_render_s16",
+    "iopm_reset",
+    "iopm_save_state",
+    "iopm_set_measured_output_timing",
+    "iopm_set_output_delays",
+    "iopm_state_size",
+    "iopm_version",
+    "iopm_write_register"
+  ],
+  "header_def_linux_exports_equal": true,
+  "windows_binary_verified": false
+}

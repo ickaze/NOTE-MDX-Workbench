@@ -1,0 +1,233 @@
+{
+  "version": "2.10.0",
+  "date": "2026-10-25",
+  "components": {
+    "Independent OPM": "0.14 / C ABI 1",
+    "Independent OPM source commit": "2990d4a720bb70dbdf178e49565496543cb70d13",
+    "PDXEditor": "1.1.1 static-runtime source; modified for integration",
+    "IndependentMDX": "0.33.5 playback and log output; modified for Workbench",
+    "NoteMDX": "0.8 Revision 5; modified",
+    "zlib": "1.3.1 selected unmodified compression sources; statically linked"
+  },
+  "windows_build": {
+    "GUI": "C++17, VS2022 x64 Release, /MT, /DEBUG:NONE",
+    "core": "C++17, VS2022 x64 Release, /MT, /DEBUG:NONE",
+    "Independent OPM DLL": "provided binary retained byte-for-byte"
+  },
+  "checks": {
+    "scope": "See VALIDATION.md and Actions evidence. This source archive contains no generated GUI/core binaries."
+  },
+  "binaries": {
+    "IndependentMDX-X68Bridge32.exe": {
+      "bytes": 370176,
+      "sha256": "3534a5524aa07eca5c60f1505c16a079dcaaa31154d5cf77e3a8dedf19f4f7d5",
+      "imports": [
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "KERNEL32.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-private-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll"
+      ],
+      "architecture": "x86"
+    },
+    "independent_opm.dll": {
+      "bytes": 192512,
+      "sha256": "701166ec2784e4b59db30a65ab07006f78b02b9883e88d8c663784b4ebf7309b",
+      "imports": [
+        "KERNEL32.dll"
+      ],
+      "architecture": "x64"
+    }
+  },
+  "editor_check": {
+    "idle_delay_ms": 500,
+    "worker": "C++ latest-request worker, JSON receiver and generation/revision guarded GUI acceptance",
+    "publication": "generation and revision guarded; no automatic preview-MDX writes",
+    "errors": "swap default foreground/background; structured diagnostics; CP932 byte columns to UTF16 spans"
+  },
+  "pdx_edit": {
+    "startup": "MUS directory; existing PDXEDIT first, otherwise import matching PDX; otherwise blank project",
+    "pcm": "EXE/PDX-stem; existing destination confirmation; No selects another folder; Cancel aborts import",
+    "project_and_output": "MUS directory, independently of PCM folder",
+    "overwrite": "PDX convert confirmation; separate project target confirmation; current project autosave preserved",
+    "import": "manual import keeps configured PDX/project name and project directory; startup or empty name uses source basename; PCM folder uses source basename",
+    "autosave": "2s idle; save reentry guard; pause during modal/load/import/convert; No or write failure blocks automatic retries until next edit; explicit close-save can retry"
+  },
+  "mrl_export": {
+    "format": "MDXRLOG 1.2",
+    "loops": 2,
+    "timebase_hz": 4000000,
+    "pdx": "embed if located; absent bank retains PCM operation log",
+    "maximum_seconds": 3600,
+    "mrz": "single record.mrl member, ZIP64/DEFLATE; bounded memory staging",
+    "controls": "shared VGM export job progress/pause/cancel/overwrite; publish only complete output"
+  },
+  "selection_playback": {
+    "repeat": true,
+    "boundary": "all selected tracks have ended; longest step count including rests",
+    "short_tracks": "wait at their finite end",
+    "state": "restore excerpt sequencer context each cycle; monotonic chip time; preserve live settings",
+    "timeline": "shared cycle without release tail",
+    "scope": "interactive selection playback only; exports remain unchanged",
+    "initial_rest": "only tracks whose first source-level MML command is r; pre-selection rests before first note; selected rests not duplicated; delay repeats each loop"
+  },
+  "gutter": {
+    "default": "steps",
+    "toggle": "right button up in line-number/step area",
+    "setting": "gutter_note_lengths boolean; omitted means false",
+    "length": "192 steps/bar; compact whole bars (1b+4); slash-separated tracks; zero as 0",
+    "representation": "exact integer dotted durations and divisors of 192; minimum terms; precomputed remainder table",
+    "mouse_routing": "SS_NOTIFY STATIC; WM_NCHITTEST returns HTCLIENT; existing right-button handler toggles without editing text"
+  },
+  "icon": {
+    "resource_id": 101,
+    "sizes": [
+      16,
+      20,
+      24,
+      32,
+      40,
+      48,
+      64,
+      96,
+      128,
+      256
+    ],
+    "source": "assets/app-icon.png",
+    "ico": "assets/app.ico",
+    "resource": "assets/app.rc",
+    "window": "HIcon and HIconSm loaded using system large/small sizes; LR_SHARED",
+    "settings": "unchanged",
+    "hashes": {
+      "assets/app-icon.png": "0d954eb30ab4983c482cd2e1a8b7b3bf0fee57bc7d91dadc0dea756ca84a6426",
+      "assets/app.ico": "6061c39b5ae9dd3db4613649da420f651bffb33b140aad0484604f036070ff1a",
+      "assets/app.rc": "7159ddef40a004873e6aaf6522e951a62b1e64d27fa456bf03442cf035f11ec3"
+    }
+  },
+  "licensing": {
+    "data_notice": "LICENSE-DATA.md",
+    "reference_notice": "licenses/NoteMDX-Reference-Data.txt",
+    "stage1_git_blob": "79c0a7c739376e00bac4b7bb483db0109b4d6022",
+    "stage1_sha256": "30982bbdbeb3874cc5a7dd4d8239bc0ee08130a1974cad7cea954b0b6aa24471",
+    "noteMDX_commit": "f5c53ba108383ef773ab2eaf8112988ad01d548d",
+    "audit": "docs/LICENSE_AUDIT.md",
+    "icon_provenance": "assets/README.md; OpenAI image generation and assembly; 0BSD to extent copyright applies",
+    "zlib": "licenses/zlib.txt; selected original source hashes and source-archive provenance in native/zlib/",
+    "bridge_runtime_notice": "THIRD_PARTY_NOTICES.txt: inherited Zig 0.13.0 notices including MinGW-w64 COPYING and per-file notices",
+    "bridge_notice_tail_sha256": "26062a08cf038aa0a973bbfb6e1111e4e2e4dde5f113a369f39e637555e07fe8",
+    "msvc_runtime": "GUI/core use MSVC static runtime (/MT)"
+  },
+  "status": "C/C++ product implementation; see docs/VALIDATION.md for verification scope",
+  "migration": {
+    "product_cpp_complete": true,
+    "go_still_required_for_gui": false,
+    "remaining_product_go": [],
+    "reference_material": "native/tests/migration/reference_go/*.txt; optional tests only",
+    "documentation": "MIGRATION.md",
+    "automatic_validation": "See this commit Actions run; package gated on all jobs",
+    "hardware_verification": "User-reported X68Sound/C86CTL playback and MIDI input; see docs/VALIDATION.md"
+  },
+  "historical_inputs": {
+    "NOTE-MDX-Workbench-v2.8.21-source.zip": {
+      "bytes": 2507884,
+      "sha256": "4488bb0ff813f7dd6d123bd099c3bd196e4960ae240f4e0880f45d4f1fcb2677"
+    },
+    "PDXEditor_v1.1.1_source_static_runtime.zip": {
+      "bytes": 70370,
+      "sha256": "46ba3993a0cfd2a9e632393326e7954dcd2a88b7f7a45e9839b19447c932bfd5"
+    },
+    "independent-opm-0.14-source.zip": {
+      "bytes": 34489465,
+      "sha256": "5a4ff3b094ef9ee151a5e7044f1105b86e82c66bf4a8d6d53dd96eeb7d8dea15"
+    },
+    "independent-opm-0.14-windows-x64.zip": {
+      "bytes": 119564,
+      "sha256": "4f566296354a7e75019f159c2d9465b17a43df6c1e075d15286e9cfb1ebb5383"
+    },
+    "NOTE-MDX-Workbench-v2.9.0-source.zip": {
+      "bytes": 2711843,
+      "sha256": "eeed5d32bd171e9e7084eacc562f2e9c72cf9bd0aea6c481a0ca80807bad140c"
+    },
+    "NOTE-MDX-Workbench-v2.9.2-source.zip": {
+      "bytes": 2748536,
+      "sha256": "7182f5e9e5fdbfca240312f21f426c7a3746ba386721a1ad9e2b0d65dc50670c"
+    },
+    "IndependentMDX_0.33.5_Windows_x64_Source.zip": {
+      "bytes": 2254892,
+      "sha256": "27aefa274ee4656c333082f88ace65cc741471660bf39dbe13ddd6d3111617b3"
+    },
+    "NOTE-MDX-Workbench-v2.9.3-source.zip": {
+      "bytes": 2901555,
+      "sha256": "2371e7df02f2ab6f83de7e624e4b713c0d27c4b365337b9c155f2907d2332b92"
+    },
+    "NOTE-MDX-Workbench-v2.9.4-source.zip": {
+      "bytes": 2907649,
+      "sha256": "1136e82337532fe1f5e5d0d69ed82d97a285fe5eccf2d22701e07706dc73ec6e"
+    },
+    "NOTE-MDX-Workbench-v2.9.5-source.zip": {
+      "bytes": 2908473,
+      "sha256": "c4e3330f5bd3de99e8a77a6244bcad020cb97eb25421d6e6946e9fad63f1f6c3"
+    },
+    "NOTE-MDX-Workbench-v2.9.6-source.zip": {
+      "bytes": 2911980,
+      "sha256": "de8b799e2ce92cc8a3b1fb72769fba3aa671cb1c9b4c370d216401dbd6c760e8"
+    },
+    "NOTE-MDX-Workbench-v2.9.7-source.zip": {
+      "bytes": 2913106,
+      "sha256": "07361003f76f4f84e445ebaedff7856039868bc37a8ace7095ff2b9125a30d96"
+    },
+    "NOTE-MDX-Workbench-v2.9.8-source.zip": {
+      "bytes": 2917387,
+      "sha256": "9442655558f870341d5c402f216b9a73a6c41e81c89e2d957bfee37b2a3becd5"
+    },
+    "NOTE-MDX-Workbench-v2.9.9-source.zip": {
+      "bytes": 4554479,
+      "sha256": "6c1cbcadfdc989802a1d9cf420c9a8e823a26949373b46d8235d08bff522f52f"
+    },
+    "NOTE-MDX-Workbench-v2.9.10-source.zip": {
+      "bytes": 4558643,
+      "sha256": "c139147ee184d3bbc0323fb2e60566899e93ac2f34a3dd10ad967e9ec4ddd301"
+    },
+    "NOTE-MDX-Workbench-v2.9.11-source.zip": {
+      "bytes": 4564479,
+      "sha256": "c6435aad66c192c85b1fad0b0e97707ffeccaf0363cee4636b22196178aa977f"
+    },
+    "NOTE-MDX-Workbench-v2.10.0-alpha.3-source.zip": {
+      "bytes": 5147284,
+      "sha256": "2eb7bf3b512b7d63c477926db796ab88009c63a678f007c47ace9a146c5b16ff"
+    },
+    "NOTE-MDX-Workbench-v2.10.0-alpha.4-source.zip": {
+      "bytes": 5191307,
+      "sha256": "8bc9a0648e08490a8de5041d339c5e3bbf0ce23b9fe8081cfb1bff9d041b2386"
+    },
+    "NOTE-MDX-Workbench-v2.10.0-alpha.5-source.zip": {
+      "bytes": 5199998,
+      "sha256": "3d60776c818504e485651bf127d634606af34abfcf769ad48b8d908124e9d564"
+    },
+    "NOTE-MDX-Workbench-v2.10.0-alpha.6-source.zip": {
+      "bytes": 5210994,
+      "sha256": "a188a5ae0165495226547c714c390ce78d26ce1b081e373940af26f97389e148"
+    },
+    "NOTE-MDX-Workbench-v2.10.0-alpha.7-source.zip": {
+      "bytes": 5227251,
+      "sha256": "f3aba0438655c28e2bbf027ba34033c1811f351db1e23539ccb428087216f4f0"
+    }
+  },
+  "vgm_pcm": {
+    "mix": "PCM P..W mixed to separate left/right outputs following per-track pan",
+    "rate": 44100,
+    "bits": 12,
+    "coding": "signed two-complement; digital zero 0",
+    "clock": 23011361,
+    "initialization": "cycle=0, mono=0",
+    "writes": "independent signed samples on PWM L/R; register 4=0 at end",
+    "overload": "one shared downward-only L/R gain from the maximum peak of both sides to fit +/-32752",
+    "fm": "YM2151 register timeline and pan unchanged"
+  }
+}

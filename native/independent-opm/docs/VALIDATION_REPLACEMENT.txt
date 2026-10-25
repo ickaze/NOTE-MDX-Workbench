@@ -1,0 +1,7 @@
+Linux GCC, C++17 -O2 -Wall -Wextra. CMake/MSVC not executed.
+PASS: reset, BUSY, CT, timer A/B, A440 waveform, pan, MUL, KF, release, chunking, state copy, algorithms, resampler
+PASS: sequence orbit and published envelope times
+PASS: all 8 algorithms x 8 channels; one-frame causal output, channel isolation, partial stereo, copy/chunking/reset/range
+PASS: 14336 independent capture vectors, divider/chunk/hold checks, 161446-bit recurrence
+PASS: 131072 states, direct expression equals 16 sequential updates
+PASS: 96 recorded step trains (5689 steps), 128 recorded AM levels, state policy, rendered PM, copy/chunk

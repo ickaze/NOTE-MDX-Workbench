@@ -1,0 +1,139 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func normalizeSourceText(text string) string {
+	text = strings.TrimPrefix(text, "\ufeff")
+	if index := strings.LastIndexByte(text, 26); index >= 0 && strings.TrimSpace(text[index+1:]) == "" {
+		text = text[:index] + text[index+1:]
+	}
+	return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n")
+}
+func formatLineSteps(values [16]uint64) string {
+	var parts []string
+	for _, steps := range values {
+		if steps != 0 {
+			parts = append(parts, fmt.Sprint(steps))
+		}
+	}
+	if len(parts) == 0 {
+		return "0"
+	}
+	return strings.Join(parts, "/")
+}
+
+// Exact durations on NOTE's 192-step bar lattice, computed once for all views.
+var noteLengthParts = buildNoteLengthParts()
+
+func buildNoteLengthParts() [192]string {
+	type duration struct {
+		ticks int
+		label string
+	}
+	var durations []duration
+	for denominator := 2; denominator <= 192; denominator++ {
+		if 192%denominator != 0 {
+			continue
+		}
+		ticks := 192 / denominator
+		durations = append(durations, duration{ticks, fmt.Sprint(denominator)})
+		length := ticks
+		for dots := 1; dots <= 5; dots++ {
+			divisor := 1 << dots
+			if ticks%divisor != 0 {
+				break
+			}
+			length += ticks / divisor
+			if length < 192 {
+				durations = append(durations, duration{length, fmt.Sprint(denominator) + strings.Repeat(".", dots)})
+			}
+		}
+	}
+	var labels [192]string
+	var counts [192]int
+	for total := 1; total < 192; total++ {
+		counts[total] = 193
+		for _, note := range durations {
+			if note.ticks > total {
+				continue
+			}
+			previous := total - note.ticks
+			candidate := note.label
+			if previous != 0 {
+				candidate += "+" + labels[previous]
+			}
+			count := 1 + counts[previous]
+			if count < counts[total] || (count == counts[total] && len(candidate) < len(labels[total])) {
+				counts[total], labels[total] = count, candidate
+			}
+		}
+	}
+	return labels
+}
+
+func noteRemainder(steps uint64) string {
+	text := fmt.Sprintf("%d小節", steps/192)
+	if remainder := steps % 192; remainder != 0 {
+		text += " + " + strings.ReplaceAll(noteLengthParts[remainder], "+", " + ")
+	}
+	return text
+}
+
+func compactNoteLength(steps uint64) string {
+	bars, remainder := steps/192, steps%192
+	if bars == 0 {
+		if remainder == 0 {
+			return "0"
+		}
+		return noteLengthParts[remainder]
+	}
+	text := fmt.Sprintf("%db", bars)
+	if remainder != 0 {
+		text += "+" + noteLengthParts[remainder]
+	}
+	return text
+}
+
+func formatLineNoteLengths(values [16]uint64) string {
+	var parts []string
+	for _, steps := range values {
+		if steps != 0 {
+			parts = append(parts, compactNoteLength(steps))
+		}
+	}
+	if len(parts) == 0 {
+		return "0"
+	}
+	return strings.Join(parts, "/")
+}
+func pianoBlack(note int) bool {
+	switch (note + 3) % 12 {
+	case 1, 3, 6, 8, 10:
+		return true
+	}
+	return false
+}
+func pianoKeyBounds(note, width int) (int, int, bool) {
+	white := 0
+	for n := 0; n < note; n++ {
+		if !pianoBlack(n) {
+			white++
+		}
+	}
+	if pianoBlack(note) {
+		center := white * width / 56
+		half := (width + 167) / 168
+		if half < 1 {
+			half = 1
+		}
+		left := center - half
+		if left < 0 {
+			left = 0
+		}
+		return left, center + half, true
+	}
+	return white * width / 56, (white + 1) * width / 56, false
+}

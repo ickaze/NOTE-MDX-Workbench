@@ -1,0 +1,29 @@
+{
+  "version": "2.10.0-alpha.7",
+  "reference_position_version": "2.10.0-alpha.6",
+  "reference_file": "native/tests/migration/reference_go/source_positions.go.txt",
+  "portable_position_cases": 11758,
+  "portable_total_cases": 106963,
+  "c_abi_cases": 105662,
+  "sanitizers": "ASan/UBSan; LeakSanitizer disabled; test callback widths, not Windows CP932",
+  "windows_runtime_executed": false,
+  "windows_expected": {
+    "common": 286,
+    "output": 100,
+    "analysis": 88,
+    "decoration": 87,
+    "positions": 589,
+    "total": 1150
+  },
+  "position_test_basis": {
+    "text_fixtures": 9,
+    "setup": 1,
+    "compiler_fixtures": 5,
+    "remaining_checks": "UTF-16 boundaries, clamping and out-of-range line/column combinations"
+  },
+  "limitations": [
+    "Windows CP932 and normal GUI playback following not executed",
+    "no application performance improvement measured",
+    "full Go to C++ migration incomplete"
+  ]
+}

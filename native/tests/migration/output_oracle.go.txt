@@ -1,0 +1,21 @@
+package main
+
+import (
+    "os"
+    "strconv"
+)
+
+func main() {
+    format, err := strconv.Atoi(os.Args[3])
+    if err != nil { panic(err) }
+    if format == 3 {
+        err = writeMrz(os.Args[1], os.Args[2], func() bool { return true }, func(int) {})
+    } else {
+        var data []byte
+        data, err = os.ReadFile(os.Args[1])
+        if err == nil && (format == 1 || format == 2) { data, err = tagVgm(data, os.Args[4]) }
+        if err == nil && format == 2 { data, err = gzipVgm(data) }
+        if err == nil { err = os.WriteFile(os.Args[2], data, 0600) }
+    }
+    if err != nil { panic(err) }
+}

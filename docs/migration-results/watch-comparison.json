@@ -1,0 +1,10 @@
+{
+  "reference_version": "2.10.0-alpha.7",
+  "observations": 16395,
+  "resets": 256,
+  "seed": 291108,
+  "mismatches": 0,
+  "reference_sha256": "0f72b59a705524b65805d752de49ef985ddda84a36aeefde720ef2649f631bc2",
+  "result_sha256": "d391f676df1e8fa91de0ac10bc32c2f36dfbab1139814c52a9753cc06629a3f6",
+  "scope": "synthetic timestamp decisions; Windows filesystem path/handle execution separate"
+}
