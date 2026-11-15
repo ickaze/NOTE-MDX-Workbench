@@ -371,10 +371,10 @@ class Core
         require(WB_Command(&request));
     }
     Json compile(const Path &path, const std::wstring &text, const Path &output, int bl = 0, int bc = 0,
-                 int el = 0, int ec = 0) const
+                 int el = 0, int ec = 0, bool playback = false) const
     {
-        auto proc = WB_CompileDecorated;
-        if (bl)
+        auto proc = playback ? WB_CompilePlayback : WB_CompileDecorated;
+        if (bl && !playback)
         {
             proc = WB_Compile;
         }

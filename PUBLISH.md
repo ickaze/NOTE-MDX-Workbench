@@ -1,9 +1,9 @@
-# 公開用配布物 — 2.10.0
+# 公開用配布物 — 2.12.0
 
-GitHub Releaseではタグ`v2.10.0`を使用し、正式版としてPre-releaseを無効にします。次の2ファイルと、両アーカイブの`SHA256SUMS.txt`を添付します。
+GitHub Releaseではタグ`v2.12.0`を使用し、正式版としてPre-releaseを無効にします。次の2ファイルと、両アーカイブの`SHA256SUMS.txt`を添付します。
 
-- `NOTE-MDX-Workbench-v2.10.0-source.zip`：C/C++ソース、ビルド手順、テスト資料、提供音源DLL・ブリッジ、ライセンスと開発文書。
-- `NOTE-MDX-Workbench-v2.10.0-Windows-x64.zip`：同じソースから再ビルドしたGUI・コアDLL、提供音源DLL・ブリッジ、言語ファイル、利用者向け文書とライセンス。
+- `NOTE-MDX-Workbench-v2.12.0-source.zip`：C/C++ソース、ビルド手順、テスト資料、提供音源DLL・ブリッジ、ライセンスと開発文書。
+- `NOTE-MDX-Workbench-v2.12.0-Windows-x64.zip`：同じソースから再ビルドしたGUI・コアDLL、提供音源DLL・ブリッジ、言語ファイル、利用者向け文書とライセンス。
 
 実行用にはMIGRATION.md、PUBLISH.md、依存関係監査・出自の開発文書、migration-resultsのJSONを含めません。ソース側のテスト基準と履歴は開発資料として保持します。
 

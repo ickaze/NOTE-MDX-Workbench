@@ -1,4 +1,4 @@
-# ビルド — 2.10.0
+# ビルド — 2.12.0
 
 Windows版はVisual Studio 2022の「C++によるデスクトップ開発」とCMake 3.20以降を使用します。WindowsのビルドはMSVC専用です。MinGW向け設定は含みません。Go・vcpkg・外部ソース取得は不要です。
 
@@ -14,7 +14,7 @@ cmake --build build-tests --config Release --parallel 2
 ctest --test-dir build-tests -C Release --output-on-failure
 ```
 
-C++単体テストは9件です。Linuxでは音源ソースを直接リンクし、GUIは作りません。Python 3とGoによる旧実装比較は`-DWB_ENABLE_REFERENCE_TESTS=ON`を明示した検証専用構成です。通常の製品ビルドには登録しません。
+C++単体テストは13件です（NDSIF通信・共有PCM試験3件を含みます）。Linuxでは音源ソースを直接リンクし、GUIは作りません。Python 3とGoによる旧実装比較は`-DWB_ENABLE_REFERENCE_TESTS=ON`を明示した検証専用構成です。通常の製品ビルドには登録しません。
 
 Windowsではビルド後にPowerShell 7で`test_frontend_windows.bat`を実行します。EXEとDLLを`build-ci/cpp-gui-ja`と`cpp-gui-en`へコピーし、専用設定で日英のGUIスモークを実行します。実利用中の設定・自動保存に対して`--smoke`を直接実行しないでください。音声機器・MIDI・外部機器の確認範囲はVALIDATION.mdを参照してください。
 

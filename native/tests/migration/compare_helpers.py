@@ -249,7 +249,9 @@ def main():
     expected_hashes = json.loads((HERE / 'oracle_hashes.json').read_text())
     for name in SOURCES:
         assert hashlib.sha256((HERE / 'reference_go' / (name+'.txt')).read_bytes()).hexdigest() == expected_hashes[name], f'Baseline changed: {name}'
-    cases = build_cases()
+    all_cases = build_cases()
+    # 2.10.1 intentionally changed gutter eligibility; editor-analysis owns its new contract.
+    cases = [(command, values) for command, values in all_cases if command != 'gutter']
     payload = ''.join(command + '\t' + '\t'.join(arg.hex() for arg in values) + '\n' for command, values in cases).encode()
     with tempfile.TemporaryDirectory(prefix='workbench-compat-') as tmp:
         path = Path(tmp)
@@ -267,7 +269,7 @@ def main():
     for index, (want, got) in enumerate(zip(expected, actual)):
         if want != got:
             failures.append({'index': index, 'command': cases[index][0], 'args_hex': [p.hex() for p in cases[index][1]], 'go_hex': want.decode(), 'cpp_hex': got.decode()})
-    report = {'reference_version': '2.9.11', 'position_reference_version': '2.10.0-alpha.6', 'test_count': len(cases), 'mismatches': len(failures),
+    report = {'intentional_changes': {'gutter': '2.10.1 column-zero active-track filtering; covered by editor-analysis CTest', 'gutter_cases_replaced': len(all_cases)-len(cases)}, 'reference_version': '2.9.11', 'position_reference_version': '2.10.0-alpha.6', 'test_count': len(cases), 'mismatches': len(failures),
               'commands': dict(sorted(collections.Counter(c for c, _ in cases).items())),
               'seed': 2911, 'reference_sha256': expected_hashes,
               'result_sha256': hashlib.sha256(b'\n'.join(expected)).hexdigest(), 'failures': failures[:20]}

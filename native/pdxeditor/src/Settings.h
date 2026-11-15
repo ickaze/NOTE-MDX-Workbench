@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: 0BSD
+// SPDX-License-Identifier: 0BSD
 // Copyright (C) 2026 by I.C.KaZe
 
 #pragma once
@@ -32,6 +32,8 @@ struct ProjectSetting
     std::wstring sourcePdx;
     int currentBank = 0;
     int internalOctave = 0;
+    int audioOutput = 0; // 0 Windows Audio, 1 NDSIF
+    int ndsifCom = 0;
     int previewVolume = 100;   // tool preview only, 0..500 percent
     int language = -1;         // legacy index: 0=Japanese, 1=English
     std::wstring languageCode; // external language pack code, e.g. ja/en

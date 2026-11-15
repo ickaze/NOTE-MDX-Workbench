@@ -541,6 +541,122 @@ std::vector<EditorErrorSpan> buildErrorSpans(const std::string &text,
     }
     return spans;
 }
+std::vector<EditorLine> classifyEditorLines(const std::string& text)
+{
+    const auto units = toUtf16(text);
+    const std::u16string tracks = u"ABCDEFGHPQRSTUVW";
+    const std::u16string macros = u"IJKLMNOXYZabcdefghijklmnopqrstuvwxyz";
+    std::vector<EditorLine> result;
+    int braces = 0;
+    bool listed = true;
+    for (std::size_t start = 0; start <= units.size();)
+    {
+        auto end = start;
+        while (end < units.size() && units[end] != u'\r' && units[end] != u'\n') ++end;
+        EditorLine line{static_cast<int>(start), static_cast<int>(end)};
+        auto first = start;
+        while (first < end && (units[first] == u' ' || units[first] == u'\t')) ++first;
+        const bool empty = first == end;
+        const bool commentOnly = !empty && (units[first] == u';' || units[first] == u'*' ||
+            (units[first] == u'/' && first + 1 < end && (units[first + 1] == u'/' || units[first + 1] == u'*')));
+        bool directive = !empty && units[start] == u'#' && braces == 0;
+        if (directive)
+        {
+            auto stop = start + 1;
+            while (stop < end && units[stop] != u' ' && units[stop] != u'\t') ++stop;
+            auto name = lower(fromUtf16(units.substr(start + 1, stop - start - 1)));
+            if (name == "list") listed = true;
+            else if (name == "nlist") listed = false;
+            else line.comment = !listed;
+        }
+        else if (commentOnly || (!empty && braces == 0 &&
+            (first != start || (units[start] != u'@' && tracks.find(units[start]) == tracks.npos &&
+             macros.find(units[start]) == macros.npos && !(units[start] >= 0xff66 && units[start] <= 0xff9d && units[start] != 0xff70)))))
+        {
+            line.comment = true;
+        }
+        else if (!empty)
+        {
+            line.comment = !listed;
+            line.track = listed && braces == 0 && tracks.find(units[start]) != tracks.npos;
+            if (listed && (braces > 0 || units[start] == u'@'))
+            {
+                char16_t quote = 0;
+                for (auto i = start; i < end; ++i)
+                {
+                    auto c = units[i];
+                    if (quote) { if (c == quote) quote = 0; continue; }
+                    if (c == u'"' || c == u'\'') { quote = c; continue; }
+                    if (c == u';' || c == u'*' || (c == u'/' && i + 1 < end && (units[i + 1] == u'/' || units[i + 1] == u'*'))) break;
+                    if (c == u'{') ++braces;
+                    if (c == u'}') braces = std::max(0, braces - 1);
+                }
+            }
+        }
+        result.push_back(line);
+        if (end == units.size()) break;
+        start = end + 1;
+        if (units[end] == u'\r' && start < units.size() && units[start] == u'\n') ++start;
+    }
+    return result;
+}
+std::vector<std::pair<int,int>> editorDimSpans(const std::string& text, const std::vector<EditorLine>* classified)
+{
+    const auto units = toUtf16(text);
+    const auto ownLines = classified ? std::vector<EditorLine>{} : classifyEditorLines(text);
+    const auto& lines = classified ? *classified : ownLines;
+    const std::u16string names = u"ABCDEFGHPQRSTUVW";
+    std::array<bool,17> muted{}, ended{};
+    std::vector<std::pair<int,int>> spans;
+    auto add = [&](int begin, int end) {
+        if (begin >= end) return;
+        if (!spans.empty() && begin <= spans.back().second) spans.back().second = std::max(end,spans.back().second);
+        else spans.emplace_back(begin,end);
+    };
+    for (const auto& line : lines)
+    {
+        if (line.comment) { add(line.begin,line.end); continue; }
+        std::vector<size_t> channels;
+        int at = line.begin, finish = line.end;
+        if (line.track) {
+            while (at < finish && names.find(units[at]) != names.npos) channels.push_back(names.find(units[at++]));
+        } else {
+            if(at>=finish || std::u16string(u"IJKLMNOXYZabcdefghijklmnopqrstuvwxyz").find(units[at])==std::u16string::npos) continue;
+            while(at<finish && units[at]!=u'=') ++at;
+            if(at==finish) continue;
+            ++at; while(at<finish && (units[at]==u' '||units[at]==u'\t')) ++at;
+            if(at<finish && (units[at]==u'"'||units[at]==u'\'')) {auto quote=units[at++];if(finish>at&&units[finish-1]==quote)--finish;}
+            muted[16]=ended[16]=false; channels.push_back(16);
+        }
+        for (; at < finish; ++at)
+        {
+            const auto c = units[at];
+            if (c == u';' || c == u'*' || (c == u'/' && at+1 < line.end && (units[at+1] == u'/' || units[at+1] == u'*'))) break;
+            bool delimiter = c == u'?' || c == u'!';
+            bool all = !channels.empty();
+            for (auto ch : channels) all = all && (ended[ch] || muted[ch]);
+            if (all || delimiter) add(at,at+1);
+            for (auto ch : channels)
+            {
+                if (ended[ch]) continue;
+                if (c == u'?') muted[ch] = !muted[ch];
+                else if (c == u'!' && !muted[ch]) ended[ch] = true;
+            }
+        }
+    }
+    return spans;
+}
+std::wstring logNewlines(const std::wstring& text)
+{
+    std::wstring out;
+    for (size_t i=0;i<text.size();++i)
+    {
+        if (text[i] == L'\r') { if (i+1<text.size() && text[i+1]==L'\n') ++i; out += L"\r\n"; }
+        else if (text[i] == L'\n') out += L"\r\n";
+        else out += text[i];
+    }
+    return out;
+}
 std::string formatGutterRow(int line, const TrackSteps &steps)
 {
     return std::to_string(line) + "  " + formatLineSteps(steps);
@@ -548,11 +664,11 @@ std::string formatGutterRow(int line, const TrackSteps &steps)
 std::string buildGutterText(const std::string &text, const std::map<int, TrackSteps> &steps)
 {
     std::vector<std::string> rows;
-    const auto count = std::count(text.begin(), text.end(), '\n') + 1;
-    for (int line = 1; line <= count; ++line)
+    const auto lines = classifyEditorLines(text);
+    for (int line = 1; line <= static_cast<int>(lines.size()); ++line)
     {
         const auto found = steps.find(line);
-        if (found == steps.end()) { rows.push_back(formatGutterRow(line, {})); }
+        if (!lines[line - 1].track || found == steps.end()) { rows.push_back(std::to_string(line)); }
         else { rows.push_back(formatGutterRow(line, found->second)); }
     }
     return join(rows, "\r\n");

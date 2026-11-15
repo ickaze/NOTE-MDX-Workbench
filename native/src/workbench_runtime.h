@@ -12,6 +12,8 @@
 #define NOMINMAX
 #endif
 #include "c86_output.h"
+#include "ndsif_output.h"
+#include "../pdxeditor/src/NdsifAudio.h"
 #include "live_session.h"
 #include "resume_position.h"
 #include "player.h"
@@ -30,7 +32,34 @@ namespace
 HWND window = nullptr;
 HMIDIIN midiInput = nullptr;
 int activeMidiDevice = -1;
-mdx::C86Output hardware;
+std::atomic<bool> ndShared{false};
+NdsifPreview previewMixer;
+std::atomic<bool> ndSharedFault{false};
+void reportSharedFailure(const std::exception& error) {
+    const std::string message=error.what();
+    if(ndShared && message.rfind("NDSIF:",0)==0) {
+        ndSharedFault=true; previewMixer.enable(false);
+        NdsifAudio::Instance().ReportSharedError(std::wstring(message.begin(),message.end()));
+    }
+}
+struct Hardware : mdx::C86Output {
+    mdx::NdOutput nd;
+    bool active() const { return nd.active() || mdx::C86Output::active(); }
+    void close() { nd.close(); mdx::C86Output::close(); }
+    void reset() { if (nd.active()) { if (ndShared) previewMixer.beginStream(); nd.reset(); } else mdx::C86Output::reset(); }
+    void write(int a,int v) { if (nd.active()) nd.write(a,v); else mdx::C86Output::write(a,v); }
+    void scheduled(uint64_t t,int a,int v,const std::atomic<bool>& stop) {
+        if (nd.active()) nd.scheduled(t,a,v,stop); else mdx::C86Output::scheduled(t,a,v,stop);
+    }
+    void setGain(double m,double f) { nd.setGain(m,f); mdx::C86Output::setGain(m,f); }
+    void setDelay(int ms) { nd.setDelay(ms); mdx::C86Output::setDelay(ms); }
+    void setChannelOverride(const std::atomic<uint32_t>* o,const std::atomic<uint32_t>* m) {
+        nd.setChannelOverride(o,m); mdx::C86Output::setChannelOverride(o,m);
+    }
+} hardware;
+int ndPort = 0;
+bool ndDevicePcm = false;
+std::atomic<double> deviceRenderPosition{0};
 std::atomic<int> selectedOutput{0};
 std::atomic<bool> mmlCatalogLoaded{false};
 auto retainedVoices = std::make_shared<mdx::VoiceState>();
@@ -101,7 +130,7 @@ struct OutputGains
     int pcm = 100;
     int master = 100;
 };
-std::array<OutputGains, 3> outputGains{{{200, 100, 100}, {200, 100, 100}, {100, 100, 100}}};
+std::array<OutputGains, 4> outputGains{{{200, 100, 100}, {200, 100, 100}, {100, 100, 100}, {100, 100, 100}}};
 std::filesystem::path executableFolder()
 {
     wchar_t path[32768]{};
@@ -368,6 +397,7 @@ mdx::Options playbackOptions()
     options.liveMidiPolyphonic       = liveMidiPolyphonic;
     options.liveAftertouch           = liveAftertouch;
     options.maxSeconds               = 0;
+    if (hardware.nd.devicePcm()) { options.sampleRate = 15625; options.fmDelayMs = options.pcmDelayMs = 0; }
     hardware.setDelay(options.fmDelayMs);
     return options;
 }
@@ -463,7 +493,7 @@ void start(double resumePosition = 0, bool resumePaused = false, std::shared_ptr
                 {
                     mdx::LiveSession session(
                         source.get(), music, timeline, retainedVoices, midiQueue, options, pauseFlag,
-                        seekRequest, songPosition, songDuration, [] { return stopFlag.load(); },
+                        seekRequest, hardware.nd.devicePcm() ? deviceRenderPosition : songPosition, songDuration, [] { return stopFlag.load(); },
                         [] { hardware.reset(); }, [](int address, int value) { hardware.write(address, value); });
                     if (resumePosition > 0)
                     {
@@ -472,6 +502,11 @@ void start(double resumePosition = 0, bool resumePaused = false, std::shared_ptr
                     }
                     if (pauseFlag.load() || seekRequest.load() >= 0) session.service();
                     if (!stopFlag.load()) playbackPreparing = false;
+                    if (hardware.nd.devicePcm())
+                    hardware.nd.play(session, stopFlag, deviceRenderPosition, songPosition, nullptr,
+                        [](int16_t* samples,size_t count) { if (ndShared) previewMixer.mix(samples,count); },
+                        [](uint64_t frames) { if (ndShared) previewMixer.consumed(frames); });
+                else
                     mdx::playWindows(session, options.sampleRate, [] { return stopFlag.load(); }, [] { return false; });
                 }
                 std::wstring result = tr(L"再生終了", L"Finished");
@@ -495,6 +530,7 @@ void start(double resumePosition = 0, bool resumePaused = false, std::shared_ptr
             catch (const std::exception& error)
             {
                 logPlaybackError(file, "", error.what());
+                reportSharedFailure(error);
                 status(L"ERROR: " + wide(error.what()));
             }
             try
@@ -503,6 +539,7 @@ void start(double resumePosition = 0, bool resumePaused = false, std::shared_ptr
             }
             catch (const std::exception& error)
             {
+                reportSharedFailure(error);
                 status(L"ERROR: " + wide(error.what()));
             }
             playbackPreparing = false;
@@ -582,12 +619,18 @@ void startMidiIdle()
             {
                 mdx::LiveSession session(
                     nullptr, nullptr, {}, retainedVoices, midiQueue, options, pauseFlag, seekRequest,
-                    songPosition, songDuration, [] { return stopFlag.load(); }, [] { hardware.reset(); },
+                    hardware.nd.devicePcm() ? deviceRenderPosition : songPosition, songDuration, [] { return stopFlag.load(); }, [] { hardware.reset(); },
                     [](int address, int value) { hardware.write(address, value); });
-                mdx::playWindows(session, options.sampleRate, [] { return stopFlag.load(); }, [] { return false; });
+                if (hardware.nd.devicePcm())
+                    hardware.nd.play(session, stopFlag, deviceRenderPosition, songPosition, nullptr,
+                        [](int16_t* samples,size_t count) { if (ndShared) previewMixer.mix(samples,count); },
+                        [](uint64_t frames) { if (ndShared) previewMixer.consumed(frames); });
+                else
+                    mdx::playWindows(session, options.sampleRate, [] { return stopFlag.load(); }, [] { return false; });
             }
             catch (const std::exception& error)
             {
+                reportSharedFailure(error);
                 status(L"ERROR: " + wide(error.what()));
             }
             try
@@ -596,6 +639,7 @@ void startMidiIdle()
             }
             catch (const std::exception& error)
             {
+                reportSharedFailure(error);
                 status(L"ERROR: " + wide(error.what()));
             }
             running  = false;
@@ -611,14 +655,14 @@ void startMidiIdle()
 }
 void captureOutputGains()
 {
-    auto& values = outputGains[std::clamp(selectedOutput.load(), 0, 2)];
+    auto& values = outputGains[std::clamp(selectedOutput.load(), 0, 3)];
     values.fm     = int(std::lround(liveIndependentGain->load() * 100));
     values.pcm    = int(std::lround(livePcmGain->load() * 100));
     values.master = int(std::lround(liveGain->load() * 100));
 }
 void applyOutputGains()
 {
-    const auto& values = outputGains[std::clamp(selectedOutput.load(), 0, 2)];
+    const auto& values = outputGains[std::clamp(selectedOutput.load(), 0, 3)];
     liveIndependentGain->store(values.fm / 100.0);
     livePcmGain->store(values.pcm / 100.0);
     liveGain->store(values.master / 100.0);
@@ -665,7 +709,7 @@ void saveRuntimeSettings()
             status(tr(L"設定ファイルを保存できません。", L"Cannot save settings."));
         }
     };
-    for (int index = 0; index < 3; ++index)
+    for (int index = 0; index < 4; ++index)
     {
         const auto key = L"Output" + std::to_wstring(index);
         number((key + L"FmGain").c_str(), outputGains[index].fm);
@@ -673,6 +717,8 @@ void saveRuntimeSettings()
         number((key + L"MasterGain").c_str(), outputGains[index].master);
     }
     number(L"OutputBackend", selectedOutput.load());
+    number(L"NdsifPort", ndPort);
+    number(L"NdsifDevicePcm", ndDevicePcm);
     number(L"Measured", liveMeasuredOutputTiming->load());
     number(L"Dac", liveDacRightDelay->load());
     number(L"FmDelayMs", fmDelayMs);
@@ -725,53 +771,94 @@ void selectMidi(int device)
     midiInput        = next;
     activeMidiDevice = device;
 }
-void selectOutput(int output)
+struct PlaybackResume
 {
-    if ((output < 0) || (output > 2))
-    {
-        throw std::runtime_error("Invalid output backend.");
+    bool song = running.load() && !idleMidi.load();
+    bool midi = running.load() && idleMidi.load() && activeMidiDevice >= 0;
+    bool paused = pauseFlag.load();
+    double position = mdx::resumePosition(playbackPreparing.load(), retainedResumePosition.load(), songPosition.load(), seekRequest.load());
+    void restore() const {
+        if (song) { input=lastPlayedFile; explicitPdx=lastPlayedBank; start(position,paused); }
+        else if (midi || ndShared) startMidiIdle();
     }
-    if (output == selectedOutput.load())
-    {
+};
+void openSongNd()
+{
+    if (ndPort<=0) throw std::runtime_error("NDSIF: select a COM port first");
+    hardware.nd.open(ndPort,ndDevicePcm || ndShared);
+    hardware.nd.clock(4000000);
+    hardware.setChannelOverride(&retainedVoices->midiFmOverride,liveMuteMask.get());
+    applyOutputGains();
+}
+void editorNdsifClose()
+{
+    auto& editor=NdsifAudio::Instance();
+    if (!ndShared) { editor.CloseLocal(); return; }
+    PlaybackResume resume;
+    stop(); ndShared=false; previewMixer.enable(false);
+    editor.CloseLocal(); hardware.nd.close();
+    try { if(selectedOutput==3) openSongNd(); }
+    catch(const std::exception& e) { hardware.close(); selectedOutput=0; applyOutputGains(); status(L"ERROR: "+wide(e.what())); }
+    resume.restore();
+}
+void editorNdsifOpen(int port)
+{
+    if(port<=0 || port>65535) throw std::runtime_error("NDSIF: select a COM port first");
+    auto& editor=NdsifAudio::Instance();
+    editorNdsifClose();
+    if(selectedOutput!=3 || port!=ndPort) {
+        std::wstring error;
+        if(!editor.OpenLocal(port,error)) throw std::runtime_error(std::string(error.begin(),error.end()));
         return;
     }
-    const bool resume = running.load() && !idleMidi.load();
-    const bool resumeIdle = running.load() && idleMidi.load();
-    const bool paused = pauseFlag.load();
-    const double position = mdx::resumePosition(playbackPreparing.load(), retainedResumePosition.load(), songPosition.load(), seekRequest.load());
-    captureOutputGains();
-    stop();
-    hardware.close();
-    selectedOutput.store(output);
-    try
-    {
-        if (output == 2)
-        {
-            hardware.open(executableFolder() / L"c86ctl.dll");
-            hardware.setChannelOverride(&retainedVoices->midiFmOverride, liveMuteMask.get());
+    PlaybackResume resume;
+    stop(); hardware.nd.close();
+    try {
+        ndShared=true; ndSharedFault=false; previewMixer.enable(true); openSongNd(); editor.AttachShared(port);
+        status(tr(L"NDSIF共有: PCMを本体出力に合成します",L"Shared NDSIF: mixing PCM to device output"));
+    } catch(...) {
+        ndShared=false; previewMixer.enable(false); hardware.nd.close();
+        try { openSongNd(); } catch(...) { hardware.close(); selectedOutput=0; applyOutputGains(); }
+        resume.restore(); throw;
+    }
+    resume.restore();
+}
+void selectOutput(int output)
+{
+    if(output<0 || output>3) throw std::runtime_error("Invalid output backend.");
+    if(output==selectedOutput.load()) return;
+    auto& editor=NdsifAudio::Instance();
+    const bool editorSelected=editor.Selected();
+    const int editorPort=editor.Port();
+    const bool wasShared=ndShared;
+    const bool share=output==3 && editorSelected && editorPort==ndPort;
+    PlaybackResume resume;
+    captureOutputGains(); stop();
+    if(wasShared || share) { editor.CloseLocal(); previewMixer.enable(false); }
+    ndShared=false; hardware.close(); selectedOutput=output;
+    try {
+        if(output==3) {
+            ndShared=share; ndSharedFault=false;
+            if(share) previewMixer.enable(true);
+            openSongNd();
+            if(share) editor.AttachShared(editorPort);
+        } else if(output==2) {
+            hardware.open(executableFolder()/L"c86ctl.dll");
+            hardware.setChannelOverride(&retainedVoices->midiFmOverride,liveMuteMask.get());
         }
+    } catch(const std::exception& e) {
+        ndShared=false; previewMixer.enable(false); hardware.close(); selectedOutput=0;
+        status(L"ERROR: "+wide(e.what()));
     }
-    catch (const std::exception& error)
-    {
-        selectedOutput.store(0);
-        status(L"ERROR: " + wide(error.what()));
+    if(editorSelected && (wasShared || share) && !ndShared) {
+        std::wstring error;
+        if(!editor.OpenLocal(editorPort,error)) status(L"ERROR: "+error);
     }
-    applyOutputGains();
-    if (resume)
-    {
-        input       = lastPlayedFile;
-        explicitPdx = lastPlayedBank;
-        start(position, paused);
-    }
-    else
-    if (resumeIdle)
-    {
-        startMidiIdle();
-    }
+    applyOutputGains(); resume.restore();
 }
 void readRuntimeSettings()
 {
-    for (int index = 0; index < 3; ++index)
+    for (int index = 0; index < 4; ++index)
     {
         const auto key = L"Output" + std::to_wstring(index);
         auto& values = outputGains[index];
@@ -793,7 +880,9 @@ void readRuntimeSettings()
     playbackLoops    = setting(L"Loops", 2, 1, 1000);
     infinitePlayback = setting(L"Infinite", 0, 0, 1);
     const auto savedGains = outputGains;
-    selectOutput(setting(L"OutputBackend", 0, 0, 2));
+    ndPort = setting(L"NdsifPort", 0, 0, 256);
+    ndDevicePcm = setting(L"NdsifDevicePcm", 0, 0, 1) != 0;
+    selectOutput(setting(L"OutputBackend", 0, 0, 3));
     outputGains = savedGains;
     applyOutputGains();
     const auto midiName = settingText(L"MidiInputName");
@@ -808,6 +897,7 @@ void readRuntimeSettings()
             }
             catch (const std::exception& error)
             {
+                reportSharedFailure(error);
                 status(L"ERROR: " + wide(error.what()));
             }
             break;

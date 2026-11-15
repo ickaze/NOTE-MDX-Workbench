@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: 0BSD
+// SPDX-License-Identifier: 0BSD
 // Copyright (C) 2026 by I.C.KaZe
 
 #include "Settings.h"
@@ -168,6 +168,10 @@ bool LoadProject(const std::wstring &path, ProjectSetting &s, std::wstring &err,
                 n.currentBank = std::max(0, std::stoi(v));
             else if (k == "internalOctave")
                 n.internalOctave = std::clamp(std::stoi(v), 0, 8);
+            else if (k == "audioOutput")
+                n.audioOutput = std::clamp(std::stoi(v), 0, 1);
+            else if (k == "ndsifCom")
+                n.ndsifCom = std::clamp(std::stoi(v), 0, 256);
             else if (k == "previewVolume")
                 n.previewVolume = std::clamp(std::stoi(v), 0, 500);
             else if (k == "language")
@@ -318,6 +322,8 @@ void CopyEditorSettings(ProjectSetting &to, const ProjectSetting &from)
 {
     to.internalOctave = from.internalOctave;
     to.previewVolume = from.previewVolume;
+    to.audioOutput = from.audioOutput;
+    to.ndsifCom = from.ndsifCom;
     to.language = from.language;
     to.languageCode = from.languageCode;
     to.windowX = from.windowX;
@@ -355,6 +361,10 @@ bool LoadEditorSettings(const std::wstring &path, ProjectSetting &s, std::wstrin
                 s.midiInputEnabled = std::stoi(v) != 0;
             else if (k == "languageCode")
                 s.languageCode = unesc(v);
+            else if (k == "audioOutput")
+                s.audioOutput = std::clamp(std::stoi(v), 0, 1);
+            else if (k == "ndsifCom")
+                s.ndsifCom = std::clamp(std::stoi(v), 0, 256);
             else if (k == "previewVolume")
                 s.previewVolume = std::clamp(std::stoi(v), 0, 500);
             else if (k == "internalOctave")
@@ -395,6 +405,7 @@ bool SaveEditorSettings(const std::wstring &path, const ProjectSetting &s,
         << "midiDeviceName=" << esc(s.midiDeviceName)
         << "\nmidiInputEnabled=" << (s.midiInputEnabled ? 1 : 0) << "\n"
         << "languageCode=" << esc(s.languageCode) << "\n"
+        << "audioOutput=" << s.audioOutput << "\nndsifCom=" << s.ndsifCom << "\n"
         << "previewVolume=" << s.previewVolume << "\ninternalOctave=" << s.internalOctave << "\n"
         << "windowX=" << s.windowX << "\nwindowY=" << s.windowY << "\nwindowW=" << s.windowW
         << "\nwindowH=" << s.windowH << "\n"
@@ -443,6 +454,8 @@ void MergeEditorSettings(ProjectSetting &project, const ProjectSetting &current,
     }
     if (useLegacy("internalOctave"))
         project.internalOctave = legacy.internalOctave;
+    if (useLegacy("audioOutput")) project.audioOutput = legacy.audioOutput;
+    if (useLegacy("ndsifCom")) project.ndsifCom = legacy.ndsifCom;
     if (useLegacy("previewVolume"))
         project.previewVolume = legacy.previewVolume;
     if (useLegacy("windowX"))

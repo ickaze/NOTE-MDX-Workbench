@@ -1,4 +1,4 @@
-# 依存部品の出自 — 2.10.0
+# 依存部品の出自 — 2.12.0
 
 GUIとworkbench_core.dllはVisual Studio 2022のMSVCで構築したC/C++プログラムです。Visual C++ランタイムとzlibは静的リンクします。Goランタイム、libgcc、libstdc++、MinGW-w64のランタイムはこの2ファイルに含みません。
 
@@ -20,3 +20,13 @@ IndependentMDX-X68Bridge32.exeはIndependentMDXの既存配布から引き継い
 - 固定Goテキスト：Workbenchの0BSDテスト資料です。Goランタイムや製品ビルド依存には含まれません。
 
 この文書はソース用の出自記録です。実行用ZIPには同梱せず、必要な許諾・通知はTHIRD_PARTY_NOTICES.txtとlicenses/に収録します。
+
+## NDSIF追加（2026-11-15）
+
+- IndependentMDX 0.34.0: https://github.com/ickaze/IndependentMDX 、基準コミット `b850b5330ee1a80bfb26d26a4f9e4dccfa0eaa22`。ndsif_output.h / ndsif_wire.h、通信模擬試験、P16/P8の確保量改善を取り込み。プレイヤー全体はWorkbench用の音符位置・選択ループ・MRL・音色編集を保持した適応版です。旧0.33.5の由来も引き続き適用します。
+- PDXEditor_v1.1.0_NDSIF_source.zip、SHA-256 `f9e18c5641b3c7b6b9edc567aeb21cfd8e13ac30e8eec99d14e49bbd4eb3b6e6`。NdsifAudio.cpp/h、NdsifWire.h、通信試験、出力UIを既存1.1.1適応版へ選択的に取り込み。設定は既存のエディター共通設定へ統合し、従来の編集機能を保持。
+- どちらのホストコードも0BSD。NanoDrive8ファームウェアのBSD-3-Clauseとは別物です。NanoDrive8のソース・バイナリは収録しません。
+
+## 2.12.0の適応変更
+
+NDSIFのポート共有、曲とエディタのPCM合成、消費位置コールバックはWorkbench独自の0BSD実装です。IndependentMDX 0.34.0の通信実装へ共有用フックを追加し、PDXEditorにはホスト接続と従来の単独接続を選ぶ内部ルートを追加しています。上流から提供された無改変バイナリは変更しません。

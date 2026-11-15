@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: 0BSD
+// SPDX-License-Identifier: 0BSD
 // Copyright (C) 2026 by I.C.KaZe
 
 #include "Audio.h"
@@ -426,6 +426,7 @@ bool WriteMono16Wave(const std::wstring &path, const std::vector<float> &p, uint
 
 void WaveOutPlayer::Stop()
 {
+    if (ndVoice_) { ndVoice_->stopped = true; ndVoice_.reset(); }
     if (h_)
     {
         waveOutReset(h_);
@@ -439,6 +440,7 @@ void WaveOutPlayer::Stop()
 }
 size_t WaveOutPlayer::PositionSamples() const
 {
+    if (ndVoice_) return ndVoice_->position;
     if (!h_)
         return 0;
     MMTIME mt{};
@@ -456,6 +458,7 @@ bool WaveOutPlayer::Play(const std::vector<float> &p, uint32_t rate)
     Stop();
     if (p.empty())
         return false;
+    if (useNdsif_) { ndVoice_ = NdsifAudio::Instance().Play(p, rate); return bool(ndVoice_); }
     // Explicitly duplicate the mono signal to L/R. Some Windows/audio-device
     // combinations do not center a one-channel waveOut stream as expected.
     buf_.resize(p.size() * 2);

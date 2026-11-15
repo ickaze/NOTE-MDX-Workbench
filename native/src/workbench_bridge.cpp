@@ -8,6 +8,7 @@
 #include "output_pipeline.h"
 #include "text_logic.h"
 #include "latest_worker.h"
+#include "compilation_cache.h"
 #include "instrument_viewer.h"
 #include "notemdx/report.hpp"
 #include <condition_variable>
@@ -164,6 +165,7 @@ void publishState(BridgeState &state)
   state.playing = running.load() && !idleMidi.load();
   state.paused = pauseFlag.load();
   state.output = selectedOutput.load();
+  state.reserved = uint32_t(ndPort) | (ndDevicePcm ? 0x10000u : 0u) | (ndShared ? 0x20000u : 0u);
   state.midi = activeMidiDevice;
   for (const auto &note : retainedVoices->midiNotes)
   {
@@ -213,6 +215,12 @@ void executeRequest(HWND hwnd, const BridgeRequest &request)
 {
   switch (request.command)
   {
+  case 30:
+    editorNdsifOpen(request.value);
+    return;
+  case 31:
+    editorNdsifClose();
+    return;
   case COMMAND_PLAY:
     if ((request.path == nullptr) || (request.path[0] == 0))
     {
@@ -239,10 +247,21 @@ void executeRequest(HWND hwnd, const BridgeRequest &request)
   case COMMAND_STOP:
     stop();
     selectionPlaying = false;
+    if (ndShared) startMidiIdle();
     break;
   case COMMAND_SEEK:
     seekRequest.store(request.value / 1000.0);
     break;
+  case 27:
+  case 28:
+  {
+    const int previous = selectedOutput.load();
+    if (previous == 3) selectOutput(0);
+    if (request.command == 27) ndPort = std::clamp(request.value, 0, 256);
+    else ndDevicePcm = request.value != 0;
+    if (previous == 3) selectOutput(3);
+    break;
+  }
   case COMMAND_OUTPUT:
     selectOutput(request.value);
     break;
@@ -309,6 +328,7 @@ void executeRequest(HWND hwnd, const BridgeRequest &request)
     {
       throw std::runtime_error("Missing state destination.");
     }
+    if (ndShared && !ndSharedFault && !running.load()) startMidiIdle();
     publishState(*request.state);
     return;
   case COMMAND_QUIT:
@@ -377,6 +397,11 @@ LRESULT CALLBACK bridgeProcedure(HWND hwnd, UINT messageNumber, WPARAM wp, LPARA
   return DefWindowProcW(hwnd, messageNumber, wp, lp);
 }
 } // namespace
+
+std::shared_ptr<NdsifVoice> WB_SharedPreview(const std::vector<float>& samples,uint32_t rate)
+{
+    return previewMixer.play(samples,rate);
+}
 
 extern "C" __declspec(dllexport) int WB_Init(HWND owner)
 {
@@ -612,11 +637,13 @@ void computeEditorData(EditorComputed &computed, const std::filesystem::path &so
     const notemdx::Result &result)
 {
   std::vector<workbench::SourceEvent> events;
+  const auto lines = workbench::classifyEditorLines(computed.text);
   if (result.ok())
   {
     for (const auto &event : result.source_events)
     {
-      if (event.file == source.u8string())
+      if (event.file == source.u8string() && event.line > 0 &&
+          std::size_t(event.line) <= lines.size() && lines[event.line - 1].track)
       {
         events.push_back({event.track, event.line, event.steps});
       }
@@ -650,23 +677,28 @@ void computeEditorData(EditorComputed &computed, const std::filesystem::path &so
   computed.gutter = workbench::buildGutterText(computed.text, computed.steps);
 }
 
+workbench::CompilationCache<notemdx::Result> compilationCache;
+
 std::string compileMMLReport(const wchar_t *sourcePath, const wchar_t *text,
                                                 const wchar_t *outputPath, int beginLine,
                                                 int beginColumn, int endLine, int endColumn,
-                                                bool mapping, bool publishCatalog, EditorComputed *computed = nullptr)
+                                                bool mapping, bool publishCatalog, EditorComputed *computed = nullptr, bool stepDetails = true)
 {
   try
   {
     const std::filesystem::path source(sourcePath);
     notemdx::Options options;
     options.editor_mapping = mapping;
-    options.include_loader = [](const std::string &name, const std::string &parent,
+    options.editor_steps = stepDetails;
+    workbench::CompilationCache<notemdx::Result>::Dependencies dependencies;
+    options.include_loader = [&dependencies](const std::string &name, const std::string &parent,
                                 notemdx::Source &loaded, std::string &error)
     {
       try
       {
         auto path = std::filesystem::u8path(parent).parent_path() / mdx::sjisPath(name);
         auto data = mdx::readFile(path);
+        dependencies.emplace_back(path.u8string(), data);
         const auto text = decodeInclude(data);
         loaded = {path.u8string(), encodeSource(text.c_str())};
         return true;
@@ -677,12 +709,14 @@ std::string compileMMLReport(const wchar_t *sourcePath, const wchar_t *text,
         return false;
       }
     };
-    options.binary_loader = [](const std::string &name, const std::string &parent,
+    options.binary_loader = [&dependencies](const std::string &name, const std::string &parent,
                                std::vector<uint8_t> &data, std::string &error)
     {
       try
       {
-        data = mdx::readFile(std::filesystem::u8path(parent).parent_path() / mdx::sjisPath(name));
+        auto path = std::filesystem::u8path(parent).parent_path() / mdx::sjisPath(name);
+        data = mdx::readFile(path);
+        dependencies.emplace_back(path.u8string(), data);
         return true;
       }
       catch (const std::exception &exception)
@@ -695,7 +729,19 @@ std::string compileMMLReport(const wchar_t *sourcePath, const wchar_t *text,
     {
       options.selection = notemdx::SelectionRange{beginLine, beginColumn, endLine, endColumn};
     }
-    auto result = notemdx::compile({source.u8string(), encodeSource(text)}, options);
+    const auto encoded = encodeSource(text);
+    std::shared_ptr<const notemdx::Result> compiled;
+    if (mapping && !options.selection)
+      compiled = compilationCache.get(source.u8string(), encoded, stepDetails,
+        [](const std::string& path) { return mdx::readFile(std::filesystem::u8path(path)); });
+    const bool cacheHit = bool(compiled);
+    if (!compiled)
+    {
+      compiled = std::make_shared<notemdx::Result>(notemdx::compile({source.u8string(), encoded}, options));
+      if (mapping && !options.selection && compiled->ok())
+        compilationCache.put(source.u8string(), encoded, stepDetails, std::move(dependencies), compiled);
+    }
+    const auto& result = *compiled;
     if (computed)
     {
       computeEditorData(*computed, source, result);
@@ -703,9 +749,10 @@ std::string compileMMLReport(const wchar_t *sourcePath, const wchar_t *text,
     auto catalogOptions = options;
     catalogOptions.selection.reset();
     catalogOptions.voice_catalog_only = true;
-    notemdx::Result catalog;
-    if (!options.selection)
-      catalog = notemdx::compile({source.u8string(), encodeSource(text)}, catalogOptions);
+    notemdx::Result fallbackCatalog;
+    if (!options.selection && !result.ok())
+      fallbackCatalog = notemdx::compile({source.u8string(), encoded}, catalogOptions);
+    const auto& catalog = result.ok() ? result : fallbackCatalog;
     if (!options.selection && publishCatalog)
     {
       mmlCatalogLoaded = true;
@@ -738,6 +785,8 @@ std::string compileMMLReport(const wchar_t *sourcePath, const wchar_t *text,
     {
       json << "false";
     }
+    json << ",\"cacheHit\":" << (cacheHit ? "true" : "false")
+         << ",\"stepDetails\":" << (stepDetails ? "true" : "false");
     json << ",\"selected\":" << int(result.selected_channel) << ",\"tracks\":[";
     for (size_t channel = 0; channel < result.statistics.tracks.size(); ++channel)
     {
@@ -960,6 +1009,13 @@ extern "C" __declspec(dllexport) int WB_CompileDecorated(const wchar_t *source, 
     return 0;
   }
 }
+// F5 needs MDX/navigation, not editor line-step aggregation or decoration.
+extern "C" __declspec(dllexport) int WB_CompilePlayback(const wchar_t *source, const wchar_t *text,
+ const wchar_t *output, int bl, int bc, int el, int ec, char *destination, size_t capacity)
+{
+  return copyResult(compileMMLReport(source, text, output, bl, bc, el, ec,
+    true, true, nullptr, false), destination, capacity);
+}
 extern "C" __declspec(dllexport) int WB_SelectionStats(const wchar_t *source, const wchar_t *text,
  const wchar_t *, int bl, int bc, int el, int ec, char *destination, size_t capacity)
 {
@@ -1097,6 +1153,8 @@ WB_SaveWavFrozen(const wchar_t *songPath, const wchar_t *bankPath, const wchar_t
   {
     ExportWorker worker;
     exportCheckpoint();
+    // Hardware playback uses Independent OPM for offline WAV rendering.
+    if (backend == 3) backend = 0;
     if (backend < 0 || backend > 1)
       throw std::runtime_error("C86CTL cannot export WAV audio.");
     job = std::clamp(job, 0, 15);
@@ -1264,59 +1322,86 @@ extern "C" __declspec(dllexport) int WB_VoiceEdit(char *destination, size_t capa
   return count;
 }
 
-extern "C" __declspec(dllexport) int WB_EditorDecoration(HWND editor, const int32_t *spans,
-                                                         size_t count)
+namespace
 {
-  static std::vector<CHARRANGE> previous;
+HWND decoratedEditor = nullptr;
+std::vector<CHARRANGE> editorComments, editorDynamic;
+constexpr COLORREF editorForeground = RGB(178, 178, 255);
+constexpr COLORREF editorBackground = RGB(20, 22, 48);
+constexpr COLORREF commentForeground = RGB(125, 125, 178);
+int renderEditor(HWND editor, const int32_t *spans, size_t count, bool resetBase)
+{
+  if (editor != decoratedEditor)
+  {
+    editorComments.clear(); editorDynamic.clear(); decoratedEditor = editor;
+    resetBase = true;
+  }
+  if (!resetBase && editorDynamic.empty() && count == 0) return 1;
   IRichEditOle *ole = nullptr;
   ITextDocument *document = nullptr;
-  const IID textDocument = {
-      0x8cc497c0, 0xa1df, 0x11ce, {0x80, 0x98, 0x00, 0xaa, 0x00, 0x47, 0xbe, 0x5d}};
+  const IID textDocument = {0x8cc497c0, 0xa1df, 0x11ce, {0x80,0x98,0x00,0xaa,0x00,0x47,0xbe,0x5d}};
   SendMessageW(editor, EM_GETOLEINTERFACE, 0, LPARAM(&ole));
   if (!ole || FAILED(ole->QueryInterface(textDocument, reinterpret_cast<void **>(&document))))
   {
-    if (ole)
-      ole->Release();
+    if (ole) ole->Release();
     return 0;
   }
   LONG unused = 0;
   document->Undo(tomSuspend, &unused);
+  document->Freeze(&unused);
   auto events = SendMessageW(editor, EM_SETEVENTMASK, 0, 0);
   auto modified = SendMessageW(editor, EM_GETMODIFY, 0, 0);
   SendMessageW(editor, WM_SETREDRAW, FALSE, 0);
-  // TOM ranges change formatting without touching the user's selection or
-  // RichEdit's internal Shift-selection anchor (even while unfocused).
-  const auto background = [document](LONG begin, LONG end, COLORREF foreground, COLORREF color) {
+  const auto color = [document](LONG begin, LONG end, COLORREF foreground, COLORREF background)
+  {
     ITextRange *range = nullptr;
     ITextFont *font = nullptr;
-    if (SUCCEEDED(document->Range(begin, end, &range)) && range) {
-      if (SUCCEEDED(range->GetFont(&font)) && font) {
-        font->SetForeColor(LONG(foreground));
-        font->SetBackColor(LONG(color));
-        font->Release();
+    if (SUCCEEDED(document->Range(begin, end, &range)) && range)
+    {
+      if (SUCCEEDED(range->GetFont(&font)) && font)
+      {
+        font->SetForeColor(LONG(foreground)); font->SetBackColor(LONG(background)); font->Release();
       }
       range->Release();
     }
   };
-  if (count == 0)
-    background(0, LONG_MAX, RGB(178, 178, 255), RGB(20, 22, 48));
-  else
-    for (auto range : previous)
-      background(range.cpMin, range.cpMax, RGB(178, 178, 255), RGB(20, 22, 48));
-  previous.clear();
-  for (size_t i = 0; i < count; ++i) {
-    CHARRANGE range{spans[i * 4], spans[i * 4 + 1]};
-    background(range.cpMin, range.cpMax, COLORREF(spans[i * 4 + 2]), COLORREF(spans[i * 4 + 3]));
-    previous.push_back(range);
+  const auto restore = [&](LONG begin, LONG end)
+  {
+    color(begin, end, editorForeground, editorBackground);
+    auto it = std::lower_bound(editorComments.begin(), editorComments.end(), begin,
+      [](const CHARRANGE& range, LONG at) { return range.cpMax <= at; });
+    for (; it != editorComments.end() && it->cpMin < end; ++it)
+      color(std::max(begin,it->cpMin), std::min(end,it->cpMax), commentForeground, editorBackground);
+  };
+  if (resetBase) restore(0, LONG_MAX);
+  else for (const auto& range : editorDynamic) restore(range.cpMin, range.cpMax);
+  editorDynamic.clear();
+  for (size_t i = 0; i < count; ++i)
+  {
+    CHARRANGE range{spans[i*4], spans[i*4+1]};
+    color(range.cpMin, range.cpMax, COLORREF(spans[i*4+2]), COLORREF(spans[i*4+3]));
+    editorDynamic.push_back(range);
   }
   SendMessageW(editor, EM_SETMODIFY, modified, 0);
   SendMessageW(editor, EM_SETEVENTMASK, 0, events);
+  document->Unfreeze(&unused);
   document->Undo(tomResume, &unused);
-  document->Release();
-  ole->Release();
+  document->Release(); ole->Release();
   SendMessageW(editor, WM_SETREDRAW, TRUE, 0);
   InvalidateRect(editor, nullptr, FALSE);
   return 1;
+}
+}
+extern "C" __declspec(dllexport) int WB_EditorComments(HWND editor, const int32_t *spans, size_t count)
+{
+  if (editor != decoratedEditor) { editorDynamic.clear(); decoratedEditor = editor; }
+  editorComments.clear();
+  for (size_t i = 0; i < count; ++i) editorComments.push_back({spans[i*2], spans[i*2+1]});
+  return renderEditor(editor, nullptr, 0, true);
+}
+extern "C" __declspec(dllexport) int WB_EditorDecoration(HWND editor, const int32_t *spans, size_t count)
+{
+  return renderEditor(editor, spans, count, false);
 }
 
 extern "C" __declspec(dllexport) int WB_EditorBackground(HWND editor, const int32_t *spans, size_t count)
@@ -1429,6 +1514,7 @@ std::pair<int, int> analysisLocation(const std::wstring &text, std::uint32_t off
 }
 std::string processAnalysis(const AnalysisRequest &request)
 {
+  SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
   EditorComputed computed;
   computed.text = request.text;
   std::string result = "{}";

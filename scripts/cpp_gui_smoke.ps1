@@ -26,7 +26,7 @@ foreach ($language in @('ja','en')) {
     if (Test-Path "$target/GUI_SMOKE_ERROR.txt") { Get-Content "$target/GUI_SMOKE_ERROR.txt"; throw "GUI smoke failed: $language" }
     if ($process.ExitCode -ne 0 -or !(Test-Path "$target/GUI_SMOKE_RESULT.json")) { throw "GUI smoke did not complete: $language" }
     $result = Get-Content "$target/GUI_SMOKE_RESULT.json" -Raw | ConvertFrom-Json
-    if (!$result.ok -or $result.checks -ne 130 -or $result.wav_bytes -le 44 -or $result.version -ne '2.10.0' -or $result.implementation -ne 'C++' -or $result.abi_bytes -ne 16936) { throw "Invalid GUI smoke result: $language" }
+    if (!$result.ok -or $result.checks -ne 150 -or $result.wav_bytes -le 44 -or $result.version -ne '2.12.0' -or $result.implementation -ne 'C++' -or $result.abi_bytes -ne 16936) { throw "Invalid GUI smoke result: $language" }
     $saved = Get-Content "$target/NOTE-MDX-Workbench.json" -Raw | ConvertFrom-Json
     if ($saved.language -ne $language -or $saved.font_name -ne $settings.font_name -or $saved.font_size -ne $settings.font_size -or $saved.master_volume -ne 137 -or $saved.pcm_volume -ne 83) { throw "Settings round trip differs: $language" }
     foreach ($key in @('master_volume','pcm_volume','font_name','font_size','splitter_pos','wav_loop_count','wav_fade_ms','monitor_height','piano_roll','carrier_pitch','pitch_height','editor_follow_mode','waveforms','gutter_note_lengths')) {

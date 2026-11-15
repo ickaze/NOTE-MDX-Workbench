@@ -321,6 +321,19 @@ int main() {
         require(linear.decode(0, 5) == std::vector<int16_t>{-32768}, "big endian P16");
         require(linear.decode(0, 6) == std::vector<int16_t>({-32768, 0}), "signed P8");
         ++passed;
+        {
+            constexpr size_t count = 200003;
+            Bytes large(1536 + count*2, 0);
+            setLong(large, 768, 1536); setLong(large, 772, count*2);
+            for(size_t i=0;i<count;++i) setWord(large,1536+i*2,uint16_t(int16_t(i*977)));
+            mdx::Pdx twoBanks(std::move(large));
+            require(twoBanks.entries.size()==192,"P16 bank position retained");
+            auto decodedLong=twoBanks.decode(96,5);
+            require(decodedLong.size()==count,"long P16 sample count");
+            for(size_t i=0;i<count;++i) require(decodedLong[i]==int16_t(i*977),"long P16 exact endian decode");
+            require(twoBanks.decode(0,5).empty(),"empty preceding bank remains empty");
+            ++passed;
+        }
         auto pcmBank = std::make_shared<mdx::Pdx>(pdxData);
         tracks.assign(16, Bytes{241, 0});
         tracks[0] = {232, 241, 0};

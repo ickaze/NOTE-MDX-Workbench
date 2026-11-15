@@ -161,7 +161,7 @@ void paintBuffered(HWND hwnd, bool gutter)
                 if (app.checkedRevision == app.revision && line < int(app.gutterRows.size()))
                 {
                     label = app.gutterRows[line];
-                    if (app.gutterLengths)
+                    if (app.gutterLengths && line < int(app.editorLines.size()) && app.editorLines[line].track)
                     {
                         label = std::to_wstring(line + 1) + L"  " +
                                 wide(workbench::formatLineNoteLengths(app.lineSteps[line + 1]));
@@ -308,6 +308,23 @@ LRESULT CALLBACK editorProc(HWND w, UINT m, WPARAM a, LPARAM b, UINT_PTR, DWORD_
 }
 void paintDecoration()
 {
+    if (app.ready && app.commentsDirty)
+    {
+        app.commentsDirty = false;
+        const auto content = utf8(text(app.editor));
+        if (content != app.classifiedText || app.editorLines.empty())
+        {
+            app.classifiedText = content;
+            app.editorLines = workbench::classifyEditorLines(content);
+            std::vector<int32_t> comments;
+            for (const auto& span : workbench::editorDimSpans(content, &app.editorLines))
+            {
+                comments.push_back(span.first); comments.push_back(span.second);
+            }
+            app.core.require(app.core.WB_EditorComments(app.editor, comments.data(), comments.size() / 2));
+            app.decorationDirty = true;
+        }
+    }
     bool active = app.cursorsValid && app.snapshot.playing;
     bool same = std::equal(app.paintedOffsets.begin(), app.paintedOffsets.end(), app.snapshot.offsets);
     if (!app.decorationDirty && active == app.paintedActive && (!active || same))

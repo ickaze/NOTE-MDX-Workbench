@@ -7,7 +7,7 @@ namespace gui
 {
 App app;
 void browsePdx();
-static void flushLog()
+void flushLog()
 {
     std::vector<std::wstring> lines;
     {
@@ -30,7 +30,7 @@ static void flushLog()
         {
             old += L"\r\n";
         }
-        old += translate(line);
+        old += workbench::logNewlines(translate(line));
     }
     if (old.size() > 50000)
     {
@@ -86,6 +86,33 @@ static void handleCommand(int id, int code, HWND origin)
     {
         changeLanguage(send(app.languageControl, CB_GETCURSEL) == 1);
         return;
+    }
+    if (id == idNdsifPort && code == CBN_DROPDOWN)
+    {
+        int saved = int(app.snapshot.reserved & 65535u);
+        app.ndPorts.clear();
+        send(app.ndPortControl, CB_RESETCONTENT);
+        send(app.ndPortControl, CB_ADDSTRING, 0, LPARAM(L"COM..."));
+        wchar_t device[4096];
+        for (int port = 1; port <= 256; ++port) {
+            auto name = L"COM" + std::to_wstring(port);
+            if (port == saved || QueryDosDeviceW(name.c_str(), device, 4096)) {
+                app.ndPorts.push_back(port);
+                send(app.ndPortControl, CB_ADDSTRING, 0, LPARAM(name.c_str()));
+            }
+        }
+        int index = 0;
+        for (size_t i = 0; i < app.ndPorts.size(); ++i) if (app.ndPorts[i] == saved) index = int(i+1);
+        send(app.ndPortControl, CB_SETCURSEL, index);
+    }
+    if (id == idNdsifPort && code == CBN_SELCHANGE) {
+        int index = int(send(app.ndPortControl, CB_GETCURSEL));
+        app.core.command(27, index > 0 && size_t(index) <= app.ndPorts.size() ? app.ndPorts[index-1] : 0);
+        updateProgress();
+    }
+    if (id == idNdsifPcm && code == CBN_SELCHANGE) {
+        app.core.command(28, int(send(app.ndPcmControl, CB_GETCURSEL)));
+        updateProgress();
     }
     if (id == idLiveOutput && code == CBN_SELCHANGE)
     {
@@ -311,7 +338,7 @@ LRESULT CALLBACK windowProc(HWND w, UINT m, WPARAM a, LPARAM b)
                     paintDecoration();
                     captureHistory();
                     if ((app.snapshot.playing && !app.snapshot.paused && app.snapshot.speed) ||
-                        app.snapshot.reserved || app.snapshot.position != previous.position ||
+                        app.snapshot.reserved != previous.reserved || app.snapshot.position != previous.position ||
                         app.snapshot.cursor != previous.cursor ||
                         std::memcmp(app.snapshot.notes, previous.notes, sizeof(previous.notes)) != 0 ||
                         std::memcmp(app.snapshot.registers, previous.registers, sizeof(previous.registers)) !=

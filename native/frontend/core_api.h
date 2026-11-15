@@ -10,7 +10,7 @@ struct BridgeState
 {
     std::uint32_t size, playing, paused;
     std::int32_t output, midi;
-    std::uint32_t reserved;
+    std::uint32_t reserved; // NDSIF: COM in bits 0..15, saved device PCM in bit 16, active shared PCM in bit 17.
     std::uint64_t position, total, offsets[16];
     std::uint8_t registers[256];
     std::int32_t notes[16];
@@ -40,6 +40,7 @@ WB_CORE_API int WB_Status(char *text, std::size_t capacity);
 WB_CORE_API void WB_Shutdown();
 WB_CORE_API int WB_Compile(const wchar_t *, const wchar_t *, const wchar_t *, int, int, int, int, char *,
                            std::size_t);
+WB_CORE_API int WB_CompilePlayback(const wchar_t *, const wchar_t *, const wchar_t *, int, int, int, int, char *, std::size_t);
 WB_CORE_API int WB_CompileDecorated(const wchar_t *, const wchar_t *, const wchar_t *, int, int, int, int,
                                     char *, std::size_t);
 WB_CORE_API int WB_EditorCheck(const wchar_t *, const wchar_t *, const wchar_t *, int, int, int, int, char *,
@@ -70,6 +71,7 @@ WB_CORE_API int WB_SaveWavFrozen(const wchar_t *, const wchar_t *, const wchar_t
                                  int, int, int, int, int, int, int, int);
 WB_CORE_API int WB_Score(char *, std::size_t);
 WB_CORE_API int WB_VoiceEdit(char *, std::size_t);
+WB_CORE_API int WB_EditorComments(HWND, const std::int32_t *, std::size_t);
 WB_CORE_API int WB_EditorDecoration(HWND, const std::int32_t *, std::size_t);
 WB_CORE_API int WB_EditorBackground(HWND, const std::int32_t *, std::size_t);
 WB_CORE_API int WB_OpenPdx(HWND, const wchar_t *, const wchar_t *);
@@ -78,11 +80,11 @@ WB_CORE_API int WB_ClosePdx();
 #undef WB_CORE_API
 #define WB_CORE_FUNCTIONS(X)                                                                                 \
     X(WB_Init)                                                                                               \
-    X(WB_Command) X(WB_State) X(WB_Error) X(WB_Status) X(WB_Shutdown) X(WB_Compile) X(WB_CompileDecorated)   \
+    X(WB_Command) X(WB_State) X(WB_Error) X(WB_Status) X(WB_Shutdown) X(WB_Compile) X(WB_CompileDecorated) X(WB_CompilePlayback)   \
         X(WB_EditorCheck) X(WB_SelectionStats) X(WB_ApplyVoiceCatalog) X(WB_AnalysisStart)                   \
             X(WB_AnalysisStop) X(WB_AnalysisSubmit) X(WB_AnalysisTake) X(WB_ExportStart)                     \
                 X(WB_ExportCheckpoint) X(WB_ExportCancelled) X(WB_ExportControl) X(WB_VgmProgress)           \
                     X(WB_WavStart) X(WB_WavProgress) X(WB_PublishOutput) X(WB_FinalizeOutput) X(WB_SaveVgm)  \
                         X(WB_SaveMrl) X(WB_SaveWav) X(WB_SaveWavFrozen) X(WB_Score) X(WB_VoiceEdit)          \
-                            X(WB_EditorDecoration) X(WB_EditorBackground) X(WB_OpenPdx) X(WB_PdxIsOpen)      \
+                            X(WB_EditorDecoration) X(WB_EditorComments) X(WB_EditorBackground) X(WB_OpenPdx) X(WB_PdxIsOpen)      \
                                 X(WB_ClosePdx)

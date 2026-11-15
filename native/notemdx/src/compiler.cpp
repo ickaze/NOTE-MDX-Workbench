@@ -85,6 +85,8 @@ struct Compiler {
 
     Result result;
     std::array<Text, 16> tracks;
+    struct ExpansionState { bool muted = false, ended = false; };
+    std::array<ExpansionState, 16> expansion;
     // First source-level track command, before macro expansion: 0 unset, 1 rest, 2 other.
     std::array<int, 16> first_track_command{};
     std::vector<Directive> directives;
@@ -147,12 +149,36 @@ struct Compiler {
         }
         return string_arg(s);
     }
-    Text expand(const Text& text, int depth = 0, const std::map<std::string,Text>* environment = nullptr) {
+    Text expand(const Text& text, int depth = 0, const std::map<std::string,Text>* environment = nullptr, ExpansionState* state = nullptr, int channelRank = -1) {
+        ExpansionState local;
+        if (!state) state = &local;
         const auto& env = environment ? *environment : macros;
         if (depth > 8) fail(text.empty() ? Location() : text.front().loc, "Macro nesting exceeds 8 levels.");
         Text out;
         for (std::size_t i = 0; i < text.size();) {
+            if (state->ended) break;
             char c = text[i].c;
+            if (c == '?') { state->muted = !state->muted; out.push_back(text[i++]); continue; }
+            if (state->muted) { ++i; continue; }
+            if (c == '!') { out.push_back(text[i++]); state->ended = true; break; }
+            if (c == '|' && channelRank >= 0) {
+                const auto location = text[i++].loc;
+                std::size_t begin=i, part=0;
+                Text selected;
+                bool closed=false;
+                while(i<text.size()) {
+                    if(text[i].c==':' || text[i].c=='|') {
+                        if(part==static_cast<std::size_t>(channelRank)) selected.insert(selected.end(),text.begin()+begin,text.begin()+i);
+                        if(text[i].c=='|') {++i;closed=true;break;}
+                        ++part;begin=i+1;
+                    }
+                    ++i;
+                }
+                if(!closed) fail(location,"Unterminated channel-selection block.");
+                auto value=expand(selected,depth,environment,state,channelRank);
+                out.insert(out.end(),value.begin(),value.end());
+                continue;
+            }
             // Recognize multi-letter commands before single-letter macro names.
             bool protected_command = false;
             for (const auto* name : {"$NATURAL", "$NORMAL", "$SHARP", "$FLAT", "$FO",
@@ -163,8 +189,9 @@ struct Compiler {
                     "TLON", "TLOF", "TLD", "TLM", "TLT", "TLL", "YAON", "YAOF", "YAD", "YAL",
                     "KSON", "KSOF", "TR", "VO", "MD", "MP", "MA", "MH", "GL", "AP", "DT", "TD",
                     "VM", "MV", "KM", "TL", "YA", "KS", "zc", "zw"}) {
-                std::size_t len = std::string(name).size();
-                if (i + len <= text.size() && plain(slice(text,i,i+len)) == name) {
+                std::size_t len = std::char_traits<char>::length(name);
+                if (i + len <= text.size() && std::equal(name, name + len, text.begin() + i,
+                    [](char expected, const Unit& unit) { return expected == unit.c; })) {
                     out.insert(out.end(),text.begin()+i,text.begin()+i+len); i += len;
                     protected_command = true; break;
                 }
@@ -203,7 +230,7 @@ struct Compiler {
                 fail(text[begin].loc, "Macro index must be 0..19.");
             auto it = env.find(key);
             if (it != env.end()) {
-                auto value = expand(it->second, depth + 1, environment);
+                auto value = expand(it->second, depth + 1, environment, state, channelRank);
                 if (opt.selection || opt.editor_mapping)
                 {
                     for (auto& unit : value)
@@ -495,8 +522,7 @@ void Compiler::read_source(const Source& source, int depth) {
             auto& command = first_track_command[channels.find(channel)];
             if (!command) command = first->c == 'r' ? 1 : 2;
         }
-        auto body = expand(raw_body);
-        distribute(selected,body);
+        distribute(selected,raw_body);
     }
     if (!pending.empty()) fail(pending.front().loc,"Unterminated voice definition.");
     include_stack.pop_back();
@@ -505,21 +531,8 @@ void Compiler::read_source(const Source& source, int depth) {
 void Compiler::distribute(const std::string& selected, const Text& text) {
     // Chords are left to the per-channel parser; retain the rank as a marker.
     for (std::size_t rank = 0; rank < selected.size(); ++rank) {
-        auto ci = channels.find(selected[rank]); Text out;
-        for (std::size_t i = 0; i < text.size();) {
-            if (text[i].c != '|') { out.push_back(text[i++]); continue; }
-            auto loc = text[i++].loc; std::size_t begin = i; std::size_t part = 0;
-            bool closed = false;
-            while (i < text.size()) {
-                if (text[i].c == ':' || text[i].c == '|') {
-                    if (part == rank) out.insert(out.end(),text.begin()+begin,text.begin()+i);
-                    if (text[i].c == '|') { ++i; closed = true; break; }
-                    ++part; begin = i + 1;
-                }
-                ++i;
-            }
-            if (!closed) fail(loc,"Unterminated channel-selection block.");
-        }
+        auto ci = channels.find(selected[rank]);
+        Text out = expand(text,0,nullptr,&expansion[ci],static_cast<int>(rank));
         Directive d{"rank",std::to_string(rank),text.empty() ? Location() : text.front().loc};
         directives.push_back(d);
         auto m = make_text("\1" + std::to_string(directives.size()-1) + ";",d.loc);
@@ -1210,7 +1223,12 @@ void Track::parse(char stop) {
         if (stop && peek() == stop) return;
         if (match("\1")) { int id = number(0,static_cast<int>(owner.directives.size()-1)); require(';'); apply(owner.directives[id]); continue; }
         if (take('!')) { pos = text.size(); return; }
-        if (take('?')) { if (tuplet_depth) fail("? inside a tuplet is not supported."); suppress = !suppress; continue; }
+        if (take('?')) {
+            while (pos < text.size() && text[pos].c != '?') ++pos;
+            if (pos == text.size()) return;
+            ++pos;
+            continue;
+        }
         if (wave_command()) continue;
         if (match("zc")) { continuity=number(0,2); continue; }
         if (match("zw")) { wave_commands=number(0,2); continue; }
@@ -1494,7 +1512,6 @@ void Track::run() {
     }
     finishing=false;
     parse();
-    if (suppress) fail("Unclosed ? suppression range.");
     if
     (
            owner.opt.selection
@@ -1564,7 +1581,7 @@ SequenceStatistics repeat_statistics(SequenceStatistics a,unsigned count) {
     }
     return result;
 }
-SequenceStatistics scan_statistics(const Bytes& bytes,std::size_t& p,int marker,bool pcm) {
+SequenceStatistics scan_statistics(const Bytes& bytes,std::size_t& p,int marker,bool pcm,bool events) {
     SequenceStatistics result;
     while(p<bytes.size()) {
         if(static_cast<int>(p)==marker && !result.tail) result.tail=StepCount{};
@@ -1579,10 +1596,10 @@ SequenceStatistics scan_statistics(const Bytes& bytes,std::size_t& p,int marker,
             p+=2;
         } else if(op==0xF6) {
             const unsigned count=bytes.at(p+1); p+=3;
-            auto prefix=scan_statistics(bytes,p,marker,pcm);
+            auto prefix=scan_statistics(bytes,p,marker,pcm,events);
             if(bytes.at(p)==0xF4) {
                 p+=3;
-                auto suffix=scan_statistics(bytes,p,marker,pcm);
+                auto suffix=scan_statistics(bytes,p,marker,pcm,events);
                 item=concatenate(repeat_statistics(concatenate(prefix,suffix),count-1),prefix);
             } else item=repeat_statistics(prefix,count);
             p+=3; // F5 and its displacement
@@ -1593,7 +1610,7 @@ SequenceStatistics scan_statistics(const Bytes& bytes,std::size_t& p,int marker,
             else if(op==0xFF || op==0xFD || op==0xFC || op==0xFB || op==0xF8 || op==0xF0 || op==0xEF || op==0xED || op==0xE9) p+=2;
             else ++p;
         }
-        if (op < 0xE0)
+        if (events && op < 0xE0)
         {
             item.event_steps[event_offset] = item.ticks;
         }
@@ -1601,22 +1618,26 @@ SequenceStatistics scan_statistics(const Bytes& bytes,std::size_t& p,int marker,
     }
     return result;
 }
-void collect_statistics(Statistics& result,const Track& track,std::map<int,std::set<int>>& pcm) {
+SequenceStatistics collect_statistics(Statistics& result,const Track& track,std::map<int,std::set<int>>& pcm,bool events) {
     std::size_t p=0;
     const int marker=track.infinite_loop>=0?track.infinite_loop:track.pseudo_loop;
-    auto summary=scan_statistics(track.out,p,marker,track.index>=8);
+    auto summary=scan_statistics(track.out,p,marker,track.index>=8,events);
     result.tracks[track.index]={summary.ticks,summary.tail};
     // A bank selected at the end of L is inherited on the next pass. Since
     // bank changes are assignments, one extra pass covers the stable state.
     if(track.index>=8 && track.infinite_loop>=0) {
         p=static_cast<std::size_t>(track.infinite_loop);
-        auto next=scan_statistics(track.out,p,-1,true);
-        summary=concatenate(std::move(summary),next);
+        auto next=scan_statistics(track.out,p,-1,true,false);
+        for (const auto& entry : next.notes) {
+            auto& target = summary.notes[entry.first < 0 ? summary.bank : entry.first];
+            target.insert(entry.second.begin(), entry.second.end());
+        }
     }
     for(const auto& entry:summary.notes) {
         auto& target=pcm[entry.first<0?0:entry.first];
         target.insert(entry.second.begin(),entry.second.end());
     }
+    return summary;
 }
 
 constexpr int SCORE_NOTE_FIRST       = 0x80;
@@ -1928,11 +1949,9 @@ Result Compiler::run(const Source& source) {
             bool muted=opt.muted_channels.find(channels[i])!=std::string::npos || opt.muted_channels.find(static_cast<char>(channels[i]+'a'-'A'))!=std::string::npos;
             muted=muted || (opt.selection && !selection_channels.count(i));
             if(muted) { track.finishing=true; if(i==0 && ex) track.emit({0xE8}); track.emit({0xF1,0}); } else track.run();
-            collect_statistics(result.statistics,track,pcm_statistics);
+            const auto summary = collect_statistics(result.statistics,track,pcm_statistics,opt.editor_mapping && opt.editor_steps);
             if (opt.editor_mapping)
             {
-                std::size_t position = 0;
-                const auto summary = scan_statistics(track.out, position, -1, false);
                 for (auto event : track.source_events)
                 {
                     const auto found = summary.event_steps.find(event.offset);

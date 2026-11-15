@@ -1,4 +1,4 @@
-﻿# PDXEditor language pack - UTF-8
+# PDXEditor language pack - UTF-8
 # Copy this file, change code/name and translate text values to add a language.
 code=en
 name=English
@@ -110,3 +110,14 @@ text.s100=Overwrite existing files?\n
 text.s101=Select the PCM extraction folder
 text.s102=Overwrite existing file?\n
 text.s103=Overwrite existing project?\n
+
+
+
+text.nds_output=Audio output
+text.nds_reconnect=Refresh/connect
+text.nds_error=NDSIF output stopped:
+text.nds_choose_port=Select the NDSIF COM port.
+text.nds_connected=NDSIF connected:
+
+text.nds_p16_hint=Set F5 before the first note on each PCM track using this P16 PDX (all PCM: PQRSTUVW F5).
+text.nds_p8_hint=Set F6 before the first note on each PCM track using this P8 PDX (all PCM: PQRSTUVW F6).

@@ -48,7 +48,7 @@ static const std::map<std::wstring, std::wstring> translations = {
      L"Measured timing: Independent OPM DLL / ALG5,7"},
     {L"YM3012時差モデル: R +7.00 μs (Clock/64 → 48 kHz)",
      L"YM3012 timing model: R +7.00 us (Clock/64 → 48 kHz)"},
-    {L"C86CTL FM遅延 ms", L"C86CTL FM delay ms"},
+    {L"FM遅延 ms", L"FM delay ms"},
     {L"PCM遅延 ms", L"PCM delay ms"},
     {L"ピアノロール解析: ", L"Piano roll analysis: "},
     {L"ピアノロール", L"Piano roll"},
@@ -146,3 +146,4 @@ void changeLanguage(bool english)
     saveSettings();
 }
 } // namespace gui
+

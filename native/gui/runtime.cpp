@@ -122,6 +122,7 @@ void shutdownCore()
 }
 void invalidate()
 {
+    app.commentsDirty = true;
     ++app.revision;
     app.gate.change(int64_t(GetTickCount64()));
     app.cursorsValid = false;
@@ -169,6 +170,7 @@ void queueCheck()
 void applyDocument(const Path &path, const std::wstring &content, uint64_t revision, const Json &result,
                    const Json &decoration)
 {
+    app.commentsDirty = true;
     app.checkedPath = path;
     app.checkedText = content;
     app.checkedRevision = revision;
@@ -291,22 +293,24 @@ void receiveAnalysis(unsigned kind)
         }
     }
 }
-bool compileFull(bool showLog)
+bool compileFull(bool showLog, bool playback)
 {
     if (!app.ready)
     {
         return false;
     }
-    app.gate.cancel();
+    if (!playback) app.gate.cancel();
     auto document = source();
     if (app.compiledText == document.second && app.sourcePath == document.first &&
-        app.compiledRevision == app.revision && app.full["ok"].boolean())
+        app.compiledRevision == app.revision && app.full["ok"].boolean() &&
+        (playback || app.full.has("decoration")))
     {
         return true;
     }
-    if (app.sourceText != document.second || app.sourcePath != document.first)
+    if (checked(app.modeFile) && (app.sourceText != document.second || app.sourcePath != document.first))
     {
         ++app.revision;
+        if (playback) app.gate.change(int64_t(GetTickCount64()) - 500);
         app.cursorsValid = false;
     }
     if (checked(app.modeFile) && text(app.editor) != document.second)
@@ -315,8 +319,8 @@ bool compileFull(bool showLog)
         setText(app.editor, document.second);
         app.restoring = false;
     }
-    auto result = app.core.compile(document.first, document.second, app.fullPath);
-    if (!result.has("decoration"))
+    auto result = app.core.compile(document.first, document.second, app.fullPath, 0, 0, 0, 0, playback);
+    if (!playback && !result.has("decoration"))
     {
         throw std::runtime_error("Missing native editor decoration");
     }
@@ -325,7 +329,13 @@ bool compileFull(bool showLog)
     app.sourceText = document.second;
     app.compiledText = document.second;
     app.compiledRevision = app.revision;
-    applyDocument(document.first, document.second, app.revision, result, result["decoration"]);
+    if (!playback)
+        applyDocument(document.first, document.second, app.revision, result, result["decoration"]);
+    else if (app.checkedRevision != app.revision)
+    {
+        // Keep an already queued editor check; F5 never waits for its result.
+        queueCheck();
+    }
     if (showLog || !result["ok"].boolean())
     {
         for (const auto &d : result["diagnostics"].items)
@@ -377,7 +387,7 @@ void updateStatistics()
         setText(app.selectionLabel, translate(label));
     }
 }
-void refreshSelection(bool force)
+void refreshSelection(bool force, bool playback)
 {
     if (!app.ready)
     {
@@ -400,7 +410,7 @@ void refreshSelection(bool force)
         setText(app.selectionLabel, L"");
         return;
     }
-    if (!app.checkedDocument["ok"].boolean() || app.checkedRevision != app.revision)
+    if (!force && (!app.checkedDocument["ok"].boolean() || app.checkedRevision != app.revision))
     {
         setText(app.selectionLabel, translate(L"解析待ち"));
         return;
@@ -423,7 +433,7 @@ void refreshSelection(bool force)
                                          });
     auto a = positions.location(begin), b = positions.location(end);
     app.selection = app.core.compile(app.sourcePath, app.sourceText, app.selectionPath, a.first, a.second,
-                                     b.first, b.second);
+                                     b.first, b.second, playback);
     if (!app.selection["ok"].boolean())
     {
         setText(app.selectionLabel, translate(L"選択範囲: 解析エラー"));
@@ -435,12 +445,12 @@ void refreshSelection(bool force)
 }
 void play()
 {
-    if (!compileFull())
+    if (!compileFull(false, true))
     {
         stop();
         return;
     }
-    refreshSelection(true);
+    refreshSelection(true, true);
     bool selected = app.selectionBegin != app.selectionEnd;
     const auto &result = [&]() -> const Json &
     {

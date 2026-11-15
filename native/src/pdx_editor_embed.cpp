@@ -8,6 +8,8 @@
 #include <thread>
 #include <objbase.h>
 
+std::shared_ptr<NdsifVoice> WB_SharedPreview(const std::vector<float>&,uint32_t);
+
 namespace
 {
 std::mutex              editorMutex;
@@ -48,6 +50,16 @@ extern "C" __declspec(dllexport) int WB_OpenPdx(HWND, const wchar_t *project, co
             const HRESULT com = OleInitialize(nullptr);
             try
             {
+                auto& audio=NdsifAudio::Instance();
+                audio.SetHost([](int com,std::wstring& error) {
+                    BridgeRequest request{30,com,nullptr,nullptr,nullptr,nullptr};
+                    if (WB_Command(&request)) return true;
+                    char text[4096]{}; WB_Error(text,sizeof(text)); error=Utf8ToW(text); return false;
+                }, [] {
+                    BridgeRequest request{31,0,nullptr,nullptr,nullptr,nullptr}; WB_Command(&request);
+                }, [](const std::vector<float>& samples,uint32_t rate) {
+                    return WB_SharedPreview(samples,rate);
+                });
                 App editor;
                 // Avoid cross-thread owner notifications while the host waits or joins.
                 editor.Run(GetModuleHandleW(nullptr), projectPath, languageCode, nullptr, [](HWND window)

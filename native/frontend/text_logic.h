@@ -14,6 +14,15 @@
 namespace workbench
 {
 using TrackSteps = std::array<std::uint64_t, 16>;
+struct EditorLine
+{
+    int begin = 0, end = 0; // UTF-16, excluding newline
+    bool comment = false, track = false;
+};
+std::vector<EditorLine> classifyEditorLines(const std::string& text);
+std::vector<std::pair<int,int>> editorDimSpans(const std::string& text, const std::vector<EditorLine>* classified = nullptr);
+std::wstring logNewlines(const std::wstring& text);
+
 
 // Text is UTF-8, editor positions are UTF-16, compiler columns are CP932 bytes.
 // These units must never be interchanged at the UI / compiler boundary.

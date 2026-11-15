@@ -126,9 +126,16 @@ int main() {
     eq(track(good("i0=\"c8\"\nj=\"i0d8\"\nA j\n")),{0xad,23,0xaf,23,0xf1,0},"nested macros");
     eq(track(good("A $FLAT{b} b b= $NORMAL b\n")),{0xb7,47,0xb8,47,0xb8,47,0xf1,0},"key signatures");
     eq(track(good("#sharp \"f\"\nA f\n#natural\nA f\n")),{0xb3,47,0xb2,47,0xf1,0},"directive order");
-    eq(track(good("A ?o5 l8 v15 c? c\n")),{0xb9,23,0xf1,0},"suppressed output keeps parser state");
+    eq(track(good("A ?o5 l8 v15 c? c\n")),{0xad,47,0xf1,0},"ignored range does not change parser state");
+    eq(track(good("A c4 ? bad yNOT_A_NUMBER | missing\nA i garbage\n")),{0xad,47,0xf1,0},"unmatched question ignores remaining track without interpretation");
+    eq(track(good("A c4 ! yNOT_A_NUMBER\nA garbage\n")),{0xad,47,0xf1,0},"bang ignores remaining track before macro expansion");
+    eq(track(good("A c4 ?bad yNOT_A_NUMBER\nB e4\nA more bad? d4\n")),{0xad,47,0xaf,47,0xf1,0},"ignored question range crosses track lines");
+    eq(track(good("i=\"? yNOT_A_NUMBER ? d4\"\nA i\n")),{0xaf,47,0xf1,0},"ignored macro contents are not interpreted");
     eq(track(good("A y$20,$ABc4\n")),{0xfe,32,171,0xad,47,0xf1,0},"hex value stops after two digits");
     eq(track(good(voice+"i=\"v3\"\n@@0=\"i\"\nA @0c\ni=\"v7\"\nA @0d\n")),{0xfd,0,0xfb,3,0xad,47,0xfd,0,0xfb,7,0xaf,47,0xf1,0},"tone macro source-order environment");
+    auto macroParts=good("i=\"|?yBAD? c:d|\"\nAB i\n");
+    eq(track(macroParts,0),{0xad,47,0xf1,0},"channel-specific ignored range within expanded macro");
+    eq(track(macroParts,1),{0xaf,47,0xf1,0},"macro channel-selection rank retained");
     auto parts=good("CBA |c:d:e|\n");
     eq(track(parts,0),{0xad,47,0xf1,0},"channel order A");
     eq(track(parts,2),{0xb1,47,0xf1,0},"channel order C");
@@ -146,7 +153,7 @@ int main() {
     eq(track(good("#include \"part.mml\"\nA i\n",opts)),{0xad,47,0xf1,0},"include callback");
     opts.muted_channels="A";
     eq(track(good("A BAD INPUT\n",opts)),{0xf1,0},"muted channel");
-    for(const auto* s:{"A c7","A c%0","A c%257","A o0c","A [c","A c]","A [c]0","A ?c","A q0","A @1c","Q c","A t0","A L","A LLc","A LCc","A AP0,1,1c","A y$100,1","A D32768","i=\"i\"\nA i","A [c/d/e]2","A Lt120","A $9","A o0 `d`4","A MP0,0,1c","A MA4,2,1c","A MP1,2,128c","A MH0,0,0,0,0,4,0c","A {cde}%2","A {{cd}4e}4","A L[/c]1","A GL6144,1c4","A c4_r4"}) bad(s);
+    for(const auto* s:{"A c7","A c%0","A c%257","A o0c","A [c","A c]","A [c]0","A q0","A @1c","Q c","A t0","A L","A LLc","A LCc","A AP0,1,1c","A y$100,1","A D32768","i=\"i\"\nA i","A [c/d/e]2","A Lt120","A $9","A o0 `d`4","A MP0,0,1c","A MA4,2,1c","A MP1,2,128c","A MH0,0,0,0,0,4,0c","A {cde}%2","A {{cd}4e}4","A L[/c]1","A GL6144,1c4","A c4_r4"}) bad(s);
     eq(track(good("A MP1,2,-24 c4 MPOF MPON\n")),{0xec,1,0,4,0xe8,0,0xad,47,0xec,128,0xec,129,0xf1,0},"negative square LFO and switches");
     eq(track(good("A MP0,7,-17 MA2,7,-17\n")),{0xec,0,0,28,0xfe,0xca,0xeb,2,0,14,0xfe,0xca,0xf1,0},"LFO signed division truncates toward zero");
     eq(track(good("A {cd}%3\n")),{0xad,1,0xaf,0,0xf1,0},"tuplet half-boundary rounding");

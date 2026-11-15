@@ -81,7 +81,9 @@ void createControls()
     app.pcmLabel = label(L"100%", 430, 284, 60);
     label(L"出力", 10, 316, 55);
     app.outputControl =
-        combo(70, 310, 225, idLiveOutput, {L"Independent OPM DLL", L"X68Sound.dll", L"C86CTL.dll"});
+        combo(70, 310, 180, idLiveOutput, {L"Independent OPM DLL", L"X68Sound.dll", L"C86CTL.dll", L"NDSIF"});
+    app.ndPortControl = combo(255, 310, 85, idNdsifPort, {L"COM..."});
+    app.ndPcmControl = combo(345, 310, 160, idNdsifPcm, {L"PCM: Windows", L"PCM: NanoDrive8", L"PCM: shared mix"});
     label(L"MIDI入力", 10, 347, 70);
     app.midiControl = combo(80, 342, 215, idLiveMIDI, {});
     refreshMidi();
@@ -91,7 +93,7 @@ void createControls()
                           BS_AUTOCHECKBOX);
     app.dac =
         button(L"YM3012時差モデル: R +7.00 μs (Clock/64 → 48 kHz)", 10, 399, 495, idDAC, BS_AUTOCHECKBOX);
-    label(L"C86CTL FM遅延 ms", 10, 434, 110);
+    label(L"FM遅延 ms", 10, 434, 110);
     app.fmDelay = edit(L"0", 125, 429, 50, idFMDelay);
     label(L"PCM遅延 ms", 180, 434, 90);
     app.pcmDelay = edit(L"0", 275, 429, 50, idPCMDelay);
@@ -272,9 +274,21 @@ void syncControls()
     setChecked(app.measured, s.measured != 0);
     setChecked(app.dac, s.dac != 0);
     setChecked(app.aftertouch, s.aftertouch != 0);
+    const int savedPort = int(s.reserved & 65535u);
+    int portIndex = 0;
+    for (size_t i = 0; i < app.ndPorts.size(); ++i) if (app.ndPorts[i] == savedPort) portIndex = int(i + 1);
+    if (savedPort && !portIndex) {
+        app.ndPorts.push_back(savedPort);
+        auto name = L"COM" + std::to_wstring(savedPort);
+        send(app.ndPortControl, CB_ADDSTRING, 0, LPARAM(name.c_str()));
+        portIndex = int(app.ndPorts.size());
+    }
+    if (!send(app.ndPortControl, CB_GETDROPPEDSTATE)) send(app.ndPortControl, CB_SETCURSEL, portIndex);
+    if (!send(app.ndPcmControl, CB_GETDROPPEDSTATE)) send(app.ndPcmControl, CB_SETCURSEL, (s.reserved & 0x20000) ? 2 : ((s.reserved >> 16) & 1));
+    EnableWindow(app.ndPcmControl, !(s.reserved & 0x20000));
     EnableWindow(app.measured, s.output == 0);
-    EnableWindow(app.fmDelay, s.output == 2);
-    EnableWindow(app.pcmDelay, s.output == 2);
+    EnableWindow(app.fmDelay, s.output == 2 || (s.output == 3 && !(s.reserved & 0x30000)));
+    EnableWindow(app.pcmDelay, s.output == 2 || (s.output == 3 && !(s.reserved & 0x30000)));
     for (auto item : {std::make_pair(app.fmDelay, s.fmDelay), std::make_pair(app.pcmDelay, s.pcmDelay)})
     {
         if (GetFocus() != item.first)

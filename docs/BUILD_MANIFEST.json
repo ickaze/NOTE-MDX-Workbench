@@ -1,6 +1,6 @@
 {
-  "version": "2.10.0",
-  "date": "2026-10-25",
+  "version": "2.12.0",
+  "date": "2026-11-15",
   "components": {
     "Independent OPM": "0.14 / C ABI 1",
     "Independent OPM source commit": "2990d4a720bb70dbdf178e49565496543cb70d13",
@@ -47,7 +47,7 @@
   },
   "editor_check": {
     "idle_delay_ms": 500,
-    "worker": "C++ latest-request worker, JSON receiver and generation/revision guarded GUI acceptance",
+    "worker": "C++ latest-request worker at below-normal Windows priority; generation/revision guarded acceptance",
     "publication": "generation and revision guarded; no automatic preview-MDX writes",
     "errors": "swap default foreground/background; structured diagnostics; CP932 byte columns to UTF16 spans"
   },
@@ -219,6 +219,13 @@
       "sha256": "f3aba0438655c28e2bbf027ba34033c1811f351db1e23539ccb428087216f4f0"
     }
   },
+  "editor_optimization": {
+    "playback": "separate compiler entry without line-step aggregation or decoration",
+    "cache": "text/path and byte-identical external dependencies; no compilation or I/O under cache lock",
+    "comments": "dim comment lines and explicit per-track question/bang ignored spans; preserve definitions and text/undo",
+    "gutter": "only active column-zero ABCDEFGHPQRSTUVW track rows",
+    "tests": "13 native CTest; 150 GUI checks per language"
+  },
   "vgm_pcm": {
     "mix": "PCM P..W mixed to separate left/right outputs following per-track pan",
     "rate": 44100,
@@ -229,5 +236,14 @@
     "writes": "independent signed samples on PWM L/R; register 4=0 at end",
     "overload": "one shared downward-only L/R gain from the maximum peak of both sides to fit +/-32752",
     "fm": "YM2151 register timeline and pan unchanged"
+  },
+  "ndsif": {
+    "independent_mdx": "0.34.0",
+    "commit": "b850b5330ee1a80bfb26d26a4f9e4dccfa0eaa22",
+    "pdx_editor_input_sha256": "f9e18c5641b3c7b6b9edc567aeb21cfd8e13ac30e8eec99d14e49bbd4eb3b6e6",
+    "hardware_verified": false,
+    "shared_connection": true,
+    "shared_pcm": "song plus editor preview mixed on device; saved PCM preference preserved",
+    "documentation": "NDSIF.md"
   }
 }

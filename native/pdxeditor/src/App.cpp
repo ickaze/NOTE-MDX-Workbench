@@ -115,7 +115,8 @@ enum
     ID_STRETCH,
     ID_PREVIEWTR,
     ID_LANGUAGE,
-    ID_WAVESCROLL
+    ID_WAVESCROLL,
+    ID_OUTPUT = 2900, ID_PORT, ID_RECONNECT
 };
 
 static int PitchToPdx(int octave, int semi)
@@ -404,6 +405,8 @@ LRESULT App::OnMsg(UINT m, WPARAM w, LPARAM l)
         AddDropped((HDROP)w);
         return 0;
     case WM_TIMER:
+        { auto error = NdsifAudio::Instance().TakeError();
+          if (!error.empty()) { Log(std::wstring(Tr(L"nds_error")) + L" " + error); NdsifAudio::Instance().Close(); } }
         if (w == 2)
         {
             // Waveform animation timer (~60 fps).  The WAV-list waveform itself
@@ -520,6 +523,15 @@ LRESULT App::OnMsg(UINT m, WPARAM w, LPARAM l)
         else if (id == ID_MIDICOMBO && code == CBN_SELCHANGE &&
                  IsDlgButtonChecked(hwnd_, ID_MIDITOGGLE))
             OpenMidi();
+        else if ((id == ID_OUTPUT || id == ID_PORT) && code == CBN_SELCHANGE && !updating_)
+        {
+            prj_.audioOutput = (int)SendMessage(outputCombo_, CB_GETCURSEL, 0, 0);
+            int i = (int)SendMessage(portCombo_, CB_GETCURSEL, 0, 0);
+            if (i >= 0 && i < (int)outputPorts_.size()) prj_.ndsifCom = outputPorts_[i];
+            ApplyAudioOutput(); SaveEditorNow();
+        }
+        else if (id == ID_RECONNECT && code == BN_CLICKED) { RefreshOutputPorts(); ApplyAudioOutput(); }
+        else if (id == ID_PORT && code == CBN_DROPDOWN && !updating_) RefreshOutputPorts();
         else if (id == ID_LANGUAGE && code == CBN_DROPDOWN && !updating_)
         {
             LoadLanguagePacks(AppDirectory());
@@ -780,6 +792,8 @@ LRESULT App::OnMsg(UINT m, WPARAM w, LPARAM l)
         DestroyWindow(hwnd_);
         return 0;
     case WM_DESTROY:
+        NdsifAudio::Instance().Close();
+        WaveOutPlayer::UseNdsif(false);
         CloseMidi();
         mousePlayer_.Stop();
         for (auto &p : keyPlayers_)
@@ -855,6 +869,12 @@ void App::CreateUI()
     SendMessage(previewTrack_, TBM_SETTICFREQ, 50, 0);
     SendMessage(previewTrack_, TBM_SETPOS, TRUE, 100);
     languageLabel_ = C(0, L"STATIC", Tr(L"s042"), SS_LEFT, 0);
+    outputLabel_ = C(0, L"STATIC", Tr(L"nds_output"), SS_LEFT, 0);
+    outputCombo_ = C(0, WC_COMBOBOXW, L"", CBS_DROPDOWNLIST | WS_VSCROLL, ID_OUTPUT);
+    portCombo_ = C(0, WC_COMBOBOXW, L"", CBS_DROPDOWNLIST | WS_VSCROLL, ID_PORT);
+    reconnectBtn_ = C(0, L"BUTTON", Tr(L"nds_reconnect"), BS_PUSHBUTTON, ID_RECONNECT);
+    SendMessage(outputCombo_, CB_ADDSTRING, 0, (LPARAM)L"Windows Audio");
+    SendMessage(outputCombo_, CB_ADDSTRING, 0, (LPARAM)L"NDSIF");
     languageCombo_ = C(0, WC_COMBOBOXW, L"", CBS_DROPDOWNLIST | WS_VSCROLL, ID_LANGUAGE);
     ReloadLanguageCombo();
     for (HWND h : {volTrack_, trTrack_, previewTrack_})
@@ -920,6 +940,8 @@ void App::CreateUI()
     ApplyUiState();
     ApplyLanguage();
     UpdateControls();
+    RefreshOutputPorts();
+    ApplyAudioOutput();
     editorReady_ = true;
     SaveEditorNow();
     Log(Tr(L"s043"));
@@ -1106,6 +1128,8 @@ void App::ApplyLanguage()
     SendMessage(fmt_, CB_SETCURSEL, oldFmt < 0 ? (int)prj_.format : oldFmt, 0);
     SetWindowTextW(stretch_, Tr(L"s040"));
     SetWindowTextW(languageLabel_, Tr(L"s042"));
+    SetWindowTextW(outputLabel_, Tr(L"nds_output"));
+    SetWindowTextW(reconnectBtn_, Tr(L"nds_reconnect"));
     const wchar_t *cols[] = {Tr(L"s032"), Tr(L"s033"), Tr(L"s034"), Tr(L"s082"), Tr(L"s083"),
                              Tr(L"s035"), Tr(L"s036"), Tr(L"s037"), Tr(L"s038")};
     HDC ldc = GetDC(list_);
@@ -1176,7 +1200,11 @@ void App::Layout()
     MoveWindow(midiToggle_, 572, 46, 180, 24, TRUE);
     MoveWindow(midiCombo_, 760, 44, std::max(180, W - 768), 140, TRUE);
 
-    const int top = 80, gap = 8, left = 520;
+    MoveWindow(outputLabel_, 8, 83, 70, 20, TRUE);
+    MoveWindow(outputCombo_, 82, 78, 170, 140, TRUE);
+    MoveWindow(portCombo_, 260, 78, 110, 140, TRUE);
+    MoveWindow(reconnectBtn_, 378, 78, 126, 26, TRUE);
+    const int top = 114, gap = 8, left = 520;
     const int rightX = left, rightW = std::max(200, W - rightX - 8);
     const int bottom = H - 8;
     // Right pane is reserved exclusively for the WAV list and log.
@@ -2637,6 +2665,7 @@ void App::LoadProjectFile(const std::wstring &p, bool ask)
     InvalidateRect(keys_, nullptr, FALSE);
     lastProject_ = projectPath_;
     SaveEditorNow();
+    if (editorReady_) { RefreshOutputPorts(); ApplyAudioOutput(); }
     Log(Tr(L"s062") + BaseName(projectAbs.wstring()));
 }
 
@@ -2808,8 +2837,12 @@ void App::Convert()
             Log(x);
         Log(Tr(L"s069") + path + L" (" + std::to_wstring(out.size()) + L" bank / " +
             std::to_wstring(used) + Tr(L"s070"));
+        std::wstring formatHint;
+        if (prj_.format == PcmFormat::P16) formatHint = Tr(L"nds_p16_hint");
+        else if (prj_.format == PcmFormat::P8) formatHint = Tr(L"nds_p8_hint");
+        if (!formatHint.empty()) Log(formatHint);
         SaveCurrentNow();
-        MessageBoxW(hwnd_, (std::wstring(Tr(L"s071")) + path).c_str(), Tr(L"s072"),
+        MessageBoxW(hwnd_, (std::wstring(Tr(L"s071")) + path + L"\n" + formatHint).c_str(), Tr(L"s072"),
                     MB_OK | MB_ICONINFORMATION);
     }
     else
@@ -3153,4 +3186,37 @@ void App::EndControlEdit()
     redo_.clear();
     pendingControlEdit_.reset();
     Log(Tr(L"s025") + std::to_wstring(prj_.currentBank) + L" PDX " + std::to_wstring(selected_));
+}
+
+void App::RefreshOutputPorts(){
+    updating_=true;
+    outputPorts_=NdsifAudio::Ports();
+    if(prj_.ndsifCom>0&&std::find(outputPorts_.begin(),outputPorts_.end(),prj_.ndsifCom)==outputPorts_.end()){
+        outputPorts_.push_back(prj_.ndsifCom);std::sort(outputPorts_.begin(),outputPorts_.end());
+    }
+    SendMessage(portCombo_,CB_RESETCONTENT,0,0);
+    int selected=-1;
+    for(size_t i=0;i<outputPorts_.size();++i){
+        auto name=L"COM"+std::to_wstring(outputPorts_[i]);
+        SendMessage(portCombo_,CB_ADDSTRING,0,(LPARAM)name.c_str());
+        if(outputPorts_[i]==prj_.ndsifCom)selected=(int)i;
+    }
+    // Never probe or open a port merely because it was enumerated.
+    SendMessage(portCombo_,CB_SETCURSEL,selected,0);
+    SendMessage(outputCombo_,CB_SETCURSEL,prj_.audioOutput,0);
+    updating_=false;
+}
+void App::ApplyAudioOutput(){
+    mousePlayer_.Stop();for(auto& p:midiPlayers_)p.Stop();for(auto& p:keyPlayers_)p.Stop();
+    midiDown_.clear();keyDownSemis_.clear();keyHolding_=listHolding_=false;
+    NdsifAudio::Instance().Close();
+    WaveOutPlayer::UseNdsif(prj_.audioOutput==1);
+    SendMessage(outputCombo_,CB_SETCURSEL,prj_.audioOutput,0);
+    EnableWindow(portCombo_,prj_.audioOutput==1);EnableWindow(reconnectBtn_,prj_.audioOutput==1);
+    if(prj_.audioOutput==1){
+        std::wstring error;
+        if(prj_.ndsifCom<=0)Log(Tr(L"nds_choose_port"));
+        else if(!NdsifAudio::Instance().Open(prj_.ndsifCom,error))Log(std::wstring(Tr(L"nds_error"))+L" "+error);
+        else Log(std::wstring(Tr(L"nds_connected"))+L" COM"+std::to_wstring(prj_.ndsifCom));
+    }
 }

@@ -48,6 +48,23 @@ int runSmoke(bool frontend)
     try
     {
         check(sizeof(NativeState) == 16936, "state ABI");
+        app.core.require(app.core.WB_State(&app.snapshot, sizeof(app.snapshot)));
+        auto beforeNd = app.snapshot.reserved;
+        app.core.command(27, 17); app.core.command(28, 1);
+        app.core.require(app.core.WB_State(&app.snapshot, sizeof(app.snapshot)));
+        auto ndState = app.snapshot;
+        check(ndState.output == 0 && ndState.reserved == (17u | 0x10000u), "NDSIF config without opening COM");
+        syncControls();
+        check(send(app.outputControl, CB_GETCOUNT) == 4, "NDSIF backend visible");
+        check(send(app.ndPcmControl, CB_GETCURSEL) == 1 && text(app.ndPortControl) == L"COM17", "NDSIF config restored to controls");
+        app.snapshot=ndState; app.snapshot.output=3; app.snapshot.reserved|=0x20000;
+        syncControls();
+        check(send(app.ndPcmControl,CB_GETCURSEL)==2&&!IsWindowEnabled(app.ndPcmControl),"shared PCM effective mode visible");
+        app.snapshot=ndState; syncControls();
+        check(IsWindowEnabled(app.ndPcmControl)!=0,"shared PCM releases saved mode control");
+        app.core.command(27, int(beforeNd & 65535)); app.core.command(28, (beforeNd >> 16) & 1);
+        app.core.require(app.core.WB_State(&app.snapshot, sizeof(app.snapshot)));
+        check(app.snapshot.reserved == beforeNd, "NDSIF original config preserved");
         // Record actual restored controls before the smoke changes document/settings.
         Json startup = Json::object();
         startup["master_volume"] = app.master;
@@ -141,9 +158,9 @@ int runSmoke(bool frontend)
         check(app.compiledRevision == compiled, "timer no synchronous recompile");
         auto wave = app.directory / L"smoke.wav";
         app.core.WB_ExportStart();
-        check(app.core.WB_SaveWav(app.fullPath.c_str(), L"", app.sourcePath.c_str(), wave.c_str(), 0, 1, 0,
-                                  100, 100) != 0,
-              "WAV rendering");
+        check(app.core.WB_SaveWavFrozen(app.fullPath.c_str(), L"", app.sourcePath.c_str(), wave.c_str(), 0, 1, 0,
+                                  100, 100, 200, 1, 1, 3, 0) != 0,
+              "NDSIF software WAV rendering");
         auto wav = read(wave);
         wavBytes = wav.size();
         bool nonzero = false;
@@ -360,6 +377,53 @@ int runSmoke(bool frontend)
         check(app.core.WB_ExportCancelled() != 0, "cancel Yes cancels");
         app.outputBusy = false;
         app.core.WB_ExportStart();
+        setText(app.editor,L"A c4 ?d4? e4 !f4\nA g4\n");
+        app.commentsDirty=true; paintDecoration();
+        CHARFORMAT2W ignoredColor{}; ignoredColor.cbSize=sizeof(ignoredColor);
+        auto colorAt=[&](int at){send(app.editor,EM_SETSEL,at,at+1);send(app.editor,EM_GETCHARFORMAT,SCF_SELECTION,LPARAM(&ignoredColor));return ignoredColor.crTextColor;};
+        check(colorAt(6)==RGB(125,125,178),"question MML is dimmed in real RichEdit");
+        check(colorAt(14)==RGB(125,125,178),"bang remainder is dimmed in real RichEdit");
+        check(colorAt(10)==RGB(178,178,255),"MML following closed question remains bright");
+        logLine(L"MDX line one\nMDX line two\r\nMDX line three\rMDX line four"); flushLog();
+        check(text(app.log).find(L"MDX line one\r\nMDX line two\r\nMDX line three\r\nMDX line four")!=std::wstring::npos,"MDX multiline log uses CRLF in real EDIT");
+        // Real RichEdit/ABI checks for comments, fast F5 and cache reuse.
+        const auto editorSample = L"; dim comment\n" + voice + L"\n A @0 c4\nA @0 c4\n";
+        setText(app.editor, editorSample);
+        send(app.editor, EM_EMPTYUNDOBUFFER);
+        send(app.editor, EM_SETSEL, 0, 5);
+        invalidate();
+        CHARFORMAT2W commentColor{};
+        commentColor.cbSize = sizeof(commentColor);
+        send(app.editor, EM_GETCHARFORMAT, SCF_SELECTION, LPARAM(&commentColor));
+        check(commentColor.crTextColor == RGB(125,125,178), "comment line is dimmed in real RichEdit");
+        check(text(app.editor) == editorSample && send(app.editor, EM_CANUNDO) == 0,
+              "comment color preserves text and undo");
+        int32_t temporaryDecoration[] = {0, 2, int32_t(RGB(20,22,48)), int32_t(RGB(178,178,255))};
+        app.core.WB_EditorDecoration(app.editor, temporaryDecoration, 1);
+        app.core.WB_EditorDecoration(app.editor, nullptr, 0);
+        send(app.editor, EM_GETCHARFORMAT, SCF_SELECTION, LPARAM(&commentColor));
+        check(commentColor.crTextColor == RGB(125,125,178), "transient decoration restores comment foreground");
+        send(app.editor, EM_SETSEL, 0, 0);
+        app.checkedRevision = UINT64_MAX;
+        check(compileFull(false, true), "F5 preparation does not require completed editor analysis");
+        check(!app.full.has("decoration") && !app.full["stepDetails"].boolean(), "F5 excludes line-step aggregation and decoration");
+        const auto fastBytes = read(app.fullPath);
+        const auto decoratedPath = app.directory / L"decorated-check.mdx";
+        const auto decoratedResult = app.core.compile(app.sourcePath, app.sourceText, decoratedPath);
+        check(decoratedResult["ok"].boolean() && read(decoratedPath) == fastBytes,
+              "fast F5 and full editor analysis generate identical MDX");
+        const auto cachedResult = app.core.compile(app.sourcePath, app.sourceText, app.fullPath, 0,0,0,0,true);
+        check(cachedResult["cacheHit"].boolean(), "F5 reuses completed full analysis");
+        check(compileFull(), "full editor refresh after fast F5");
+        check(app.gutterRows.size() >= 4 && app.gutterRows[0] == L"1" && app.gutterRows[1] == L"2" &&
+              app.gutterRows[2] == L"3" && app.gutterRows[3].find(L"48") != std::wstring::npos,
+              "gutter excludes comments and definitions");
+        const auto selectedNote = editorSample.rfind(L"c4");
+        send(app.editor, EM_SETSEL, selectedNote, selectedNote + 2);
+        app.checkedRevision = UINT64_MAX;
+        refreshSelection(true, true);
+        check(app.selection["ok"].boolean() && !app.selection["stepDetails"].boolean(),
+              "selection F5 works while editor analysis is pending");
         setText(app.editor, original);
         send(app.editor, EM_SETSEL, 0, 0);
         check(compileFull(), "restore valid document");

@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: 0BSD
+// SPDX-License-Identifier: 0BSD
 // Copyright (C) 2026 by I.C.KaZe
 
 #pragma once
@@ -10,6 +10,13 @@ inline const LanguagePack &BuiltinEnglishLanguage()
         L"en",
         L"English",
         {
+            {L"nds_output", L"Audio output"},
+            {L"nds_reconnect", L"Refresh/connect"},
+            {L"nds_error", L"NDSIF output stopped:"},
+            {L"nds_choose_port", L"Select the NDSIF COM port."},
+            {L"nds_connected", L"NDSIF connected:"},
+            {L"nds_p16_hint", L"Set F5 before the first note on each PCM track using this P16 PDX (all PCM: PQRSTUVW F5)."},
+            {L"nds_p8_hint", L"Set F6 before the first note on each PCM track using this P8 PDX (all PCM: PQRSTUVW F6)."},
             {L"s000", L"PDX file is too small"},
             {L"s001",
              L"Cannot identify the PDX header (neither standard PDX nor EX-PDX is consistent)"},

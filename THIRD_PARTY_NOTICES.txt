@@ -1,4 +1,4 @@
-NOTE-MDX-Workbench 2.10.0 components
+NOTE-MDX-Workbench 2.12.0 components
 
 Editor additions: Copyright (C) 2026 by I.C.KaZe, 0BSD (LICENSE.txt).
 Playback/log integration: IndependentMDX 0.33.5 (modified for Workbench), 0BSD (licenses/IndependentMDX.txt).
@@ -31,6 +31,18 @@ reside in the root of the Windows runtime archive.
 | bin/NOTE-MDX-Workbench.exe | C++17 Win32 GUI; MSVC static runtime (/MT) | Workbench 0BSD; Microsoft Visual C++ runtime redistribution terms |
 | bin/workbench_core.dll | Workbench + above native components; MSVC static runtime (/MT) | Above component notices; Microsoft Visual C++ runtime redistribution terms |
 | bin/IndependentMDX-X68Bridge32.exe | Inherited IndependentMDX bridge, built using Zig 0.13.0 | IndependentMDX 0BSD and retained Zig/LLVM/compiler-rt/musl notices below |
+
+NDSIF host integration (2.12.0)
+- IndependentMDX 0.34.0, commit b850b5330ee1a80bfb26d26a4f9e4dccfa0eaa22:
+  native/src/ndsif_output.h and ndsif_wire.h, 0BSD,
+  Copyright (c) 2026 IndependentMDX contributors.
+- PDXEditor 1.1.0 NDSIF additions integrated into the retained 1.1.1 adapter:
+  native/pdxeditor/src/NdsifAudio.cpp/h and NdsifWire.h, 0BSD.
+  Copyright (C) 2026 by I.C.KaZe. IndependentMDX wire attribution is retained.
+- NanoDrive8 original firmware is separately BSD-3-Clause,
+  Copyright (c) 2024-2026, Fujix, except where noted by that project.
+  No NanoDrive8 firmware/source is bundled. The independently written host
+  implementation remains 0BSD. See docs/NDSIF.md for protocol and license links.
 
 Runtime-license document scope
 - NOTE-MDX-Workbench.exe and workbench_core.dll are C/C++ MSVC Release

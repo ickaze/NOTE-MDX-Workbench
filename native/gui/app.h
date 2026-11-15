@@ -4,7 +4,7 @@
 #include "platform.h"
 namespace gui
 {
-constexpr const wchar_t *version = L"2.10.0";
+constexpr const wchar_t *version = L"2.12.0";
 constexpr UINT analysisMessage = WM_APP + 76, selectionMessage = WM_APP + 72, outputMessage = WM_APP + 71;
 constexpr wchar_t names[] = L"ABCDEFGHPQRSTUVW";
 enum
@@ -39,6 +39,7 @@ enum
     ID_SELECTION_STATUS = 1076,
     ID_TRACK_BASE = 1100,
     idLiveOutput = 4100,
+    idNdsifPort = 4105, idNdsifPcm = 4106,
     idLiveVoices = 4102,
     idPDXEdit = 4104,
     idLiveMIDI = 4103,
@@ -65,7 +66,8 @@ struct App
     HWND exportMixBtn{}, exportTracksBtn{}, seek{}, timeLabel{}, editorName{}, masterSlider{}, masterLabel{},
         pcmSlider{}, pcmLabel{}, wavLoopsEdit{}, fadeMsEdit{};
     HWND mmdspPanel{}, splitterHwnd{}, selectionLabel{}, languageControl{}, outputControl{}, midiControl{},
-        pdxButton{};
+        pdxButton{}, ndPortControl{}, ndPcmControl{};
+    std::vector<int> ndPorts;
     HWND measured{}, dac{}, fmDelay{}, pcmDelay{}, key{}, keyValue{}, keyMode{}, speed{}, speedValue{},
         fmGain{}, fmValue{}, poly{}, aftertouch{};
     HWND rollButton{}, carrierButton{}, waveButton{}, followControl{}, scroll{}, monitorSplitter{};
@@ -96,6 +98,9 @@ struct App
     std::map<int, workbench::TrackSteps> lineSteps;
     std::vector<std::wstring> gutterRows;
     std::vector<workbench::EditorErrorSpan> errors;
+    std::vector<workbench::EditorLine> editorLines;
+    std::string classifiedText;
+    bool commentsDirty = true;
     std::map<uint64_t, Json> cursors;
     std::array<uint64_t, 16> paintedOffsets{};
     bool paintedActive = false;
@@ -171,10 +176,10 @@ void tick();
 void invalidate();
 void queueCheck();
 void receiveAnalysis(unsigned);
-void refreshSelection(bool = false);
+void refreshSelection(bool = false, bool = false);
 void applyDocument(const Path &, const std::wstring &, uint64_t, const Json &, const Json &);
 std::pair<Path, std::wstring> source();
-bool compileFull(bool = false);
+bool compileFull(bool = false, bool = false);
 void play();
 void stop();
 void updateStatistics();
@@ -194,6 +199,7 @@ void pollVoice();
 void refreshMidi();
 void changeLanguage(bool);
 void syncControls();
+void flushLog();
 void commandControl(int, int);
 void slider(HWND, int);
 LRESULT CALLBACK windowProc(HWND, UINT, WPARAM, LPARAM);

@@ -67,12 +67,13 @@ int main(int argc,char**argv){
  assert(std::wstring(Tr(L"s044"))!=L"s044");
  assert(BuiltinEnglishLanguage().text.size()>=100);
  ProjectSetting p;p.pdxName=L"sample";p.banks[0].slot[0].reverse=true;
+ p.audioOutput=1;p.ndsifCom=17;
  p.banks[0].slot[0].trimStart=2;p.windowW=1200;p.languageCode=L"en";
  assert(SaveProject((d/"sample.pdxedit").wstring(),p,err));
  ProjectSetting q;assert(LoadProject((d/"sample.pdxedit").wstring(),q,err));
  assert(q.banks[0].slot[0].reverse&&q.banks[0].slot[0].trimStart==2);
  assert(SaveEditorSettings((d/"PDXEditor.ini").wstring(),p,(d/"sample.pdxedit").wstring(),saved));
- assert(LoadEditorSettings((d/"PDXEditor.ini").wstring(),q,last));assert(q.windowW==1200);
+ assert(LoadEditorSettings((d/"PDXEditor.ini").wstring(),q,last));assert(q.windowW==1200&&q.audioOutput==1&&q.ndsifCom==17);
  {std::ofstream f(d/"partial.ini");f<<"windowW=1300\n";}
  std::set<std::string> iniKeys,projectKeys;ProjectSetting common,legacy;
  assert(LoadEditorSettings((d/"partial.ini").wstring(),common,last,&iniKeys));
@@ -93,6 +94,12 @@ int main(int argc,char**argv){
  assert(pdx.table[1][0].length==0&&pdx.table[2][4].length==banks[2][4].size());
  banks.resize(1);assert(WriteExPdxMulti((d/"single.pdx").wstring(),banks,err));
  assert(ReadPdx((d/"single.pdx").wstring(),pdx,err)&&pdx.banks==1);
+ std::vector<float> longPcm(200003);for(size_t i=0;i<longPcm.size();++i)longPcm[i]=.9f*std::sin(i*.017);
+ auto longData=EncodeTarget(longPcm,PcmFormat::P16);assert(longData.size()==400006);
+ auto longDecoded=DecodeTarget(longData.data(),longData.size(),PcmFormat::P16);
+ for(size_t i=0;i<longPcm.size();++i){int16_t v=int16_t(std::lround(longPcm[i]*32767));
+   assert(longData[2*i]==uint8_t(uint16_t(v)>>8)&&longData[2*i+1]==uint8_t(v));
+   assert(std::abs(longDecoded[i]-v/32768.f)<1e-7f);}
  std::cout<<"portable core: passed\n";
 }
 '''
@@ -106,9 +113,9 @@ with tempfile.TemporaryDirectory() as tmp:
 keys = set()
 for p in (ROOT / "src").glob("*"):
     if p.suffix in {".cpp", ".h"} and p.name != "BuiltinEnglish.h":
-        keys.update(re.findall(r'Tr\(L"(s\d+)"\)', p.read_text(encoding="utf-8-sig")))
+        keys.update(re.findall(r'Tr\(L"((?:s\d+|nds_\w+))"\)', p.read_text(encoding="utf-8-sig")))
 for lang in ("ja", "en"):
-    supplied = set(re.findall(r'^text\.(s\d+)=', read(f"languages/{lang}.lang"), re.M))
+    supplied = set(re.findall(r'^text\.((?:s\d+|nds_\w+))=', read(f"languages/{lang}.lang"), re.M))
     assert keys <= supplied, (lang, keys - supplied)
 ET.parse(ROOT / "PDXEditor.vcxproj")
 assert 'AfterTargets="Build"' in read("PDXEditor.vcxproj")

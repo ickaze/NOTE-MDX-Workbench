@@ -150,7 +150,7 @@ std::vector<int16_t> Pdx::decode(size_t index, int format) const {
         throw std::runtime_error("PCM format must be F0..F6");
     auto e = entries[index];
     std::vector<int16_t> result;
-    result.reserve(static_cast<size_t>(e.length) * 2);
+    result.reserve(format == 5 ? e.length / 2 : format == 6 ? e.length : static_cast<size_t>(e.length) * 2);
     if (format == 5) {
         if (e.length % 2)
             throw std::runtime_error("P16 sample has odd byte length");

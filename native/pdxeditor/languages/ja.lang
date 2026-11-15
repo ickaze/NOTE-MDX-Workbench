@@ -1,4 +1,4 @@
-﻿# PDXEditor language pack - UTF-8
+# PDXEditor language pack - UTF-8
 # Copy this file, change code/name and translate text values to add a language.
 code=ja
 name=日本語
@@ -110,3 +110,14 @@ text.s100=既存のファイルを上書きしますか？\n
 text.s101=PCMの展開先フォルダーを選択してください
 text.s102=既存のファイルを上書きしますか？\n
 text.s103=既存のプロジェクトを上書きしますか？\n
+
+
+
+text.nds_output=音声出力
+text.nds_reconnect=再検出・接続
+text.nds_error=NDSIF出力を停止しました：
+text.nds_choose_port=NDSIFのCOMポートを選択してください。
+text.nds_connected=NDSIF接続完了：
+
+text.nds_p16_hint=P16のPDXを使用するPCMトラックには、最初の音より前にF5を指定してください（全PCMならPQRSTUVW F5）。
+text.nds_p8_hint=P8のPDXを使用するPCMトラックには、最初の音より前にF6を指定してください（全PCMならPQRSTUVW F6）。

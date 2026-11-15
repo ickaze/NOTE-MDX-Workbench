@@ -43,6 +43,7 @@ struct SelectionRange {
 struct Options {
     // Preserve individual source events for editor navigation.
     bool editor_mapping = false;
+    bool editor_steps = true; // false: keep navigation offsets, omit per-event repeat step totals
     bool voice_catalog_only = false; // tolerant definitions-only scan; last valid definition wins
     std::optional<SelectionRange> selection;
 
